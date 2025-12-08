@@ -1,0 +1,37 @@
+---
+- hosts: all
+  become: true
+  pre_tasks:
+
+  - name: install updates (Ubuntu)
+    tags: always
+    apt:
+      upgrade: dist
+      update_cache: yes
+    when: ansible_distribution == "Ubuntu"
+
+- hosts: all
+  become: true
+  tasks:
+
+  - name: create frez user
+    tags: always
+    user:
+      name: frez
+      groups: root
+
+  - name: add ssh key for frez
+    tags: always
+    authorized_key:
+      user: frez
+      key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMXdu6UI9nO3j5E1msKoiXTgF15Pk2hOys7HwT6j51qG ansible-key"
+
+  - name: add sudoers file for frez
+    tags: always
+    copy:
+      src: sudoer_frez
+      dest: /etc/sudoers.d/frez
+      owner: root
+      group: root
+      mode: 0440
+

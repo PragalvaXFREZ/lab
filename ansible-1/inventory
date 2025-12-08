@@ -1,0 +1,11 @@
+[web_servers]
+192.168.1.3 ansible_user=root
+
+[db_servers]
+192.168.1.4 ansible_user=root
+
+[file_servers]
+192.168.1.5 ansible_user=root
+
+[workstations]
+192.168.1.7

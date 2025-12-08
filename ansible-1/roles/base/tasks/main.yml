@@ -1,0 +1,5 @@
+- name: add ssh key for frez
+  authorized_key:
+    user: frez
+    key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMXdu6UI9nO3j5E1msKoiXTgF15Pk2hOys7HwT6j51qG ansible-key"
+

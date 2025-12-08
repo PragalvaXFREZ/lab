@@ -1,0 +1,47 @@
+---
+# PRE-TASKS FOR ALL HOSTS
+- hosts: all
+  become: true
+  pre_tasks:
+
+    - name: update repository index (CentOS)
+      tags: always
+      dnf:
+        update_cache: yes
+      changed_when: false
+      when: ansible_distribution == "CentOS"
+
+    - name: update repository index (Ubuntu)
+      tags: always
+      apt:
+        update_cache: yes
+      changed_when: false
+      when: ansible_distribution == "Ubuntu"
+
+  roles:
+    - base
+
+# WORKSTATIONS
+- hosts: workstations
+  become: true
+  roles:
+    - workstations
+
+# WEB SERVERS
+- hosts: web_servers
+  become: true
+  roles:
+    - web_server
+
+# DATABASE SERVERS
+- hosts: db_servers
+  become: true
+  roles:
+    - db_server
+
+# FILE SERVERS
+- hosts: file_servers
+  become: true
+  roles:
+    - file_server
+
