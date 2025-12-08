@@ -1,0 +1,83 @@
+analysing log files
+==================
+
+List of log files updated in last 24 hours
+./system.log
+./application.log
+
+-------------------------------
+Analyzing file: ./system.log
+-------------------------------
+--- Processing: ./system.log ---
+Searching for ERROR logs in ./system.log
+2025-09-25 09:22:11 [ERROR] Disk usage exceeded 90%
+2025-09-25 10:50:11 [ERROR] Unauthorized access attempt detected
+2025-09-25 08:35:11 [ERROR] File system read-only mode
+2025-09-23 18:58:11 [ERROR] File system read-only mode
+2025-09-24 07:43:11 [ERROR] Network interface eth0 down
+2025-09-23 13:15:11 [ERROR] Kernel panic detected
+2025-09-24 06:30:11 [ERROR] FATAL: power supply failure
+--- Processing: ./system.log ---
+Searching for FATAL logs in ./system.log
+2025-09-24 04:21:11 [FATAL] Unauthorized access attempt detected
+2025-09-25 04:24:11 [CRITICAL] FATAL: power supply failure
+2025-09-24 09:28:11 [CRITICAL] FATAL: power supply failure
+2025-09-24 19:09:11 [FATAL] FATAL: power supply failure
+2025-09-23 17:52:11 [FATAL] System started
+2025-09-24 13:55:11 [FATAL] Kernel panic detected
+2025-09-23 22:09:11 [WARN] FATAL: power supply failure
+2025-09-24 17:12:11 [INFO] FATAL: power supply failure
+2025-09-23 16:51:11 [CRITICAL] FATAL: power supply failure
+2025-09-24 06:30:11 [ERROR] FATAL: power supply failure
+2025-09-24 02:10:11 [FATAL] FATAL: power supply failure
+2025-09-24 06:28:11 [DEBUG] FATAL: power supply failure
+--- Processing: ./system.log ---
+Searching for CRITICAL logs in ./system.log
+2025-09-25 05:30:11 [CRITICAL] Kernel panic detected
+2025-09-25 08:29:11 [CRITICAL] Network interface eth0 up
+2025-09-25 04:24:11 [CRITICAL] FATAL: power supply failure
+2025-09-24 09:28:11 [CRITICAL] FATAL: power supply failure
+2025-09-24 01:04:11 [DEBUG] CRITICAL: memory corruption detected
+2025-09-25 04:27:11 [DEBUG] CRITICAL: memory corruption detected
+2025-09-24 07:34:11 [CRITICAL] CRITICAL: memory corruption detected
+2025-09-25 05:06:11 [CRITICAL] Network interface eth0 up
+2025-09-25 08:26:11 [CRITICAL] Network interface eth0 up
+2025-09-23 16:51:11 [CRITICAL] FATAL: power supply failure
+2025-09-24 23:41:11 [CRITICAL] Network interface eth0 down
+2025-09-24 03:02:11 [INFO] CRITICAL: memory corruption detected
+
+-------------------------------
+Analyzing file: ./application.log
+-------------------------------
+--- Processing: ./application.log ---
+Searching for ERROR logs in ./application.log
+2025-09-24 03:54:11 [ERROR] User login failed for username=admin
+2025-09-25 03:04:11 [ERROR] Service unavailable, retrying...
+2025-09-23 16:24:11 [ERROR] Payment gateway error
+2025-09-25 10:21:11 [ERROR] Service unavailable, retrying....
+2025-09-25 11:12:11 [ERROR] Invalid API key provided
+2025-09-25 09:58:11 [ERROR] Invalid API key provided
+2025-09-25 04:58:11 [ERROR] Cache miss for session ID
+2025-09-24 09:56:11 [ERROR] Payment processed successfully
+2025-09-24 03:47:11 [ERROR] Payment gateway error
+2025-09-24 20:23:11 [ERROR] Service unavailable, retrying...
+2025-09-23 21:43:11 [ERROR] User login successful
+2025-09-23 12:56:11 [ERROR] Service unavailable, retrying...
+2025-09-24 20:36:11 [ERROR] Null pointer exception in module X
+--- Processing: ./application.log ---
+Searching for FATAL logs in ./application.log
+2025-09-24 01:29:11 [FATAL] Database connection timeout
+2025-09-24 19:09:11 [FATAL] Payment processed successfully
+2025-09-24 21:16:11 [FATAL] Null pointer exception in module X
+2025-09-24 07:54:11 [FATAL] Null pointer exception in module X
+2025-09-24 07:41:11 [FATAL] Payment processed successfully
+2025-09-24 00:50:11 [FATAL] Database connection established
+--- Processing: ./application.log ---
+Searching for CRITICAL logs in ./application.log
+2025-09-24 01:29:11 [CRITICAL] Service unavailable, retrying...
+2025-09-25 02:03:11 [CRITICAL] Null pointer exception in module X
+2025-09-25 05:06:11 [CRITICAL] User login failed for username=admin
+
+======================
+======================
+======================
