@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: svc-lab-echo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: svc-lab
+  template:
+    metadata:
+      labels:
+        app: svc-lab
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: echo
+        image: hashicorp/http-echo
+        args:
+        - "-text=hello-from-service-lab"
+        ports:
+        - containerPort: 5678
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
