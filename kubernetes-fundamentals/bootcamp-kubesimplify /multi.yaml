@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: init-demo-2
+spec:
+  initContainers:
+  - name: check-db-service
+    image: busybox:1.35
+    command:
+      - sh
+      - -c
+      - |
+        until nslookup db.default.svc.cluster.local; do
+          echo waiting for db service
+          sleep 2
+        done
+
+  - name: check-myservice
+    image: busybox:1.35
+    command:
+      - sh
+      - -c
+      - |
+        until nslookup myservice.default.svc.cluster.local; do
+          echo waiting for myservice
+          sleep 2
+        done
+
+  containers:
+  - name: main-container
+    image: busybox
+    command: ["sleep", "3600"]
+
