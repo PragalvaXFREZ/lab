@@ -10,7 +10,7 @@ spec:
       - sh
       - -c
       - |
-        until nslookup db.default.svc.cluster.local; do
+        until until nc -z db 3306; do
           echo waiting for db service
           sleep 2
         done
@@ -21,7 +21,7 @@ spec:
       - sh
       - -c
       - |
-        until nslookup myservice.default.svc.cluster.local; do
+        until wget -qO- myservice:80; do
           echo waiting for myservice
           sleep 2
         done
