@@ -1,7 +1,7 @@
-# Ansible Learning & Practice Repository
+# ansible
 
-This repository documents my learning journey and hands-on practice with Ansible for infrastructure automation and configuration management.  
-It serves as a portfolio to demonstrate familiarity with common automation workflows, playbook design, role-based structure, and environment provisioning.
+Host bootstrap and automation for the homelab. This directory documents my hands-on practice with Ansible for infrastructure automation and configuration management.  
+It demonstrates common automation workflows, playbook design, role-based structure, and environment provisioning.
 
 ## Motivation & Purpose
 
