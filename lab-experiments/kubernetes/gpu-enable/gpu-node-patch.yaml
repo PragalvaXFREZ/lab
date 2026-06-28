@@ -1,0 +1,12 @@
+# Machine-config patch for talos-lqv-w4u ONLY — load the NVIDIA kernel modules.
+# Apply scoped to the node:  talosctl patch mc -e 192.168.1.9 -n 192.168.1.9 --patch @gpu-node-patch.yaml
+# Do NOT apply cluster-wide: the other 3 nodes have no card and would fail the module load.
+machine:
+  kernel:
+    modules:
+      - name: nvidia
+      - name: nvidia_uvm
+      - name: nvidia_drm
+      - name: nvidia_modeset
+  sysctls:
+    net.core.bpf_jit_harden: 1

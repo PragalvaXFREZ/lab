@@ -1,0 +1,22 @@
+# Fix attempt for RmInitAdapter / Xid 140 on the GTX 1650 Ti (Turing) with the 570 driver.
+# Root cause: the 570 branch loads GSP firmware by default; on Turing GeForce that handshake
+# fails ("possible firmware handling failure", misreported as an ECC error), so RmInitAdapter
+# fails and NVML enumerates 0 GPUs. Disabling GSP forces the legacy init path Turing can use.
+#
+# Apply scoped to the GPU node, then REBOOT (module param only takes on reload):
+#   talosctl patch mc -e 192.168.1.9 -n 192.168.1.9 --patch @gsp-disable-patch.yaml
+#   talosctl reboot   -e 192.168.1.9 -n 192.168.1.9
+# Verify after reboot: talosctl -e 192.168.1.9 -n 192.168.1.9 dmesg | grep -i RmInitAdapter
+#   -> success = the line is GONE. Then nvidia.com/gpu should appear in allocatable on its own.
+# Rollback: re-apply gpu-node-patch.yaml (without the parameters) and reboot.
+machine:
+  kernel:
+    modules:
+      - name: nvidia
+        parameters:
+          - NVreg_EnableGpuFirmware=0
+      - name: nvidia_uvm
+      - name: nvidia_drm
+      - name: nvidia_modeset
+  sysctls:
+    net.core.bpf_jit_harden: 1
