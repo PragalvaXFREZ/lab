@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/PragalvaXFREZ/lab.git
+    targetRevision: main
+    path: kubernetes/bootstrap/argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: false  # ponytail: never let argocd prune its own install; flip on only if you deliberately remove a component
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true  # argocd CRDs exceed the client-side last-applied annotation limit
