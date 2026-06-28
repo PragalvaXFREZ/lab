@@ -1,0 +1,9 @@
+# Talos Image Factory schematic — LTS 535 NVIDIA driver for talos-lqv-w4u (GTX 1650 Ti, Turing).
+# Why 535 over 570: 570's RM fails RmInitAdapter on this Turing mobile GPU even with GSP disabled.
+# 535 (535.247.01) predates GSP-default on Turing and uses a different, more-tested legacy RM path.
+# POST to https://factory.talos.dev/schematics, then upgrade the node to the resulting installer image.
+customization:
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/nonfree-kmod-nvidia-lts
+      - siderolabs/nvidia-container-toolkit-lts

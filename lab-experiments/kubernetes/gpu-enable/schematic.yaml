@@ -1,0 +1,9 @@
+# Talos Image Factory schematic — proprietary NVIDIA driver for talos-lqv-w4u (GTX 1650 Ti, Turing)
+# Production 570 branch (highest CUDA ceiling, Turing fully supported in production).
+# POST this to https://factory.talos.dev/schematics to get an image ID, then upgrade the node
+# to factory.talos.dev/installer/<ID>:v1.11.5
+customization:
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/nonfree-kmod-nvidia-production
+      - siderolabs/nvidia-container-toolkit-production
