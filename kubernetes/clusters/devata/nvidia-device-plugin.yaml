@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nvidia-device-plugin
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://nvidia.github.io/k8s-device-plugin
+      chart: nvidia-device-plugin
+      targetRevision: 0.19.3  # pinned to the running release; upgrading is editing this line
+      helm:
+        valueFiles:
+          - $values/kubernetes/infra/controllers/nvidia-device-plugin/values.yaml
+    - repoURL: https://github.com/PragalvaXFREZ/lab.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nvidia-device-plugin
+  syncPolicy:
+    # Automation is intentionally OFF for the first adoption. The root app-of-apps creates
+    # this Application, but it stays OutOfSync and changes nothing on the cluster until you
+    # drive `argocd app diff nvidia-device-plugin` to empty, then uncomment the automated
+    # block and let the first sync be a no-op against the already-running DaemonSet.
+    # Procedure: the adoption note in the migrating-the-imperative-stack vault chapter.
+    syncOptions:
+      - CreateNamespace=true
+    # automated:
+    #   selfHeal: true
+    #   prune: true
