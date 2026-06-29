@@ -1,0 +1,4 @@
+# Recovered from the live release: helm get values nvidia-device-plugin -n nvidia-device-plugin
+# This is the only override devata runs. It makes the plugin pods schedule under the
+# nvidia RuntimeClass, so containerd hands them the NVIDIA container runtime.
+runtimeClassName: nvidia
