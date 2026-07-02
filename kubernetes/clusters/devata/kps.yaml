@@ -22,6 +22,6 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
-   #automated:
-     #selfHeal: true
-     #prune: true
+    # automated:                    # uncomment only after the diff is empty
+    #   selfHeal: true
+    #   prune: true

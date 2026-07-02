@@ -1,8 +1,8 @@
-USER-SUPPLIED VALUES:
 alertmanager:
   enabled: false
 grafana:
-  existingSecret: grafana-admin
+  admin:
+    existingSecret: grafana-admin
   dashboardProviders:
     dashboardproviders.yaml:
       apiVersion: 1
