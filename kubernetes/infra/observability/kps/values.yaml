@@ -1,0 +1,132 @@
+USER-SUPPLIED VALUES:
+alertmanager:
+  enabled: false
+grafana:
+  existingSecret: grafana-admin
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - disableDeletion: false
+        editable: true
+        folder: Cilium
+        name: cilium
+        options:
+          path: /var/lib/grafana/dashboards/cilium
+        orgId: 1
+        type: file
+  dashboards:
+    cilium:
+      hubble:
+        datasource: Prometheus
+        gnetId: 16611
+        revision: 1
+  nodeSelector:
+    kubernetes.io/hostname: talos-3eq-vo2
+  persistence:
+    enabled: true
+    size: 2Gi
+    storageClassName: local-path
+  resources:
+    limits:
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+  service:
+    type: LoadBalancer
+kube-state-metrics:
+  resources:
+    limits:
+      memory: 128Mi
+    requests:
+      cpu: 20m
+      memory: 64Mi
+kubeControllerManager:
+  enabled: true
+  endpoints:
+  - 192.168.1.8
+  service:
+    enabled: true
+    port: 10257
+    targetPort: 10257
+  serviceMonitor:
+    https: true
+    insecureSkipVerify: true
+kubeEtcd:
+  enabled: true
+  endpoints:
+  - 192.168.1.8
+  service:
+    enabled: true
+    port: 2381
+    targetPort: 2381
+  serviceMonitor:
+    scheme: http
+kubeProxy:
+  enabled: false
+kubeScheduler:
+  enabled: true
+  endpoints:
+  - 192.168.1.8
+  service:
+    enabled: true
+    port: 10259
+    targetPort: 10259
+  serviceMonitor:
+    https: true
+    insecureSkipVerify: true
+prometheus:
+  prometheusSpec:
+    initContainers:
+    - command:
+      - sh
+      - -c
+      - chown -R 1000:2000 /prometheus && chmod -R g+rwX /prometheus
+      image: busybox:1.37
+      name: init-chown-data
+      securityContext:
+        runAsNonRoot: false
+        runAsUser: 0
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /prometheus
+        name: prometheus-kps-kube-prometheus-stack-prometheus-db
+        subPath: prometheus-db
+    nodeSelector:
+      kubernetes.io/hostname: talos-igk-9ep
+    podMonitorSelectorNilUsesHelmValues: false
+    resources:
+      limits:
+        memory: 900Mi
+      requests:
+        cpu: 100m
+        memory: 450Mi
+    retention: 7d
+    retentionSize: 4GiB
+    ruleSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: 5Gi
+          storageClassName: local-path
+prometheus-node-exporter:
+  resources:
+    limits:
+      memory: 64Mi
+    requests:
+      cpu: 10m
+      memory: 24Mi
+prometheusOperator:
+  resources:
+    limits:
+      memory: 250Mi
+    requests:
+      cpu: 50m
+      memory: 100Mi
