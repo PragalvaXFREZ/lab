@@ -18,9 +18,26 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: kube-system
+  ignoreDifferences:
+    - kind: Secret
+      name: cilium-ca
+      namespace: kube-system
+      jsonPointers:
+        - /data
+    - kind: Secret
+      name: hubble-relay-client-certs
+      namespace: kube-system
+      jsonPointers:
+        - /data
+    - kind: Secret
+      name: hubble-server-certs
+      namespace: kube-system
+      jsonPointers:
+        - /data
   syncPolicy:
     syncOptions:
       - ServerSideApply=true
+      - RespectIgnoreDifferences=true
     # automated:
     #   selfHeal: true
     #   prune: true
