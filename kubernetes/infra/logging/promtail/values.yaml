@@ -1,0 +1,11 @@
+config:
+  clients:
+  - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
+resources:
+  limits:
+    memory: 128Mi
+  requests:
+    cpu: 20m
+    memory: 64Mi
+tolerations:
+- operator: Exists
