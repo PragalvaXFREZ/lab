@@ -1,0 +1,59 @@
+backend:
+  replicas: 0
+chunksCache:
+  enabled: false
+deploymentMode: SingleBinary
+gateway:
+  enabled: false
+loki:
+  auth_enabled: false
+  commonConfig:
+    replication_factor: 1
+  compactor:
+    delete_request_store: filesystem
+    retention_enabled: true
+  ingester:
+    chunk_encoding: snappy
+  limits_config:
+    reject_old_samples: true
+    reject_old_samples_max_age: 168h
+    retention_period: 72h
+  pattern_ingester:
+    enabled: false
+  schemaConfig:
+    configs:
+    - from: "2024-04-01"
+      index:
+        period: 24h
+        prefix: index_
+      object_store: filesystem
+      schema: v13
+      store: tsdb
+  storage:
+    type: filesystem
+lokiCanary:
+  enabled: false
+minio:
+  enabled: false
+read:
+  replicas: 0
+resultsCache:
+  enabled: false
+singleBinary:
+  nodeSelector:
+    kubernetes.io/hostname: talos-3eq-vo2
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: local-path
+  replicas: 1
+  resources:
+    limits:
+      memory: 384Mi
+    requests:
+      cpu: 50m
+      memory: 192Mi
+test:
+  enabled: false
+write:
+  replicas: 0
