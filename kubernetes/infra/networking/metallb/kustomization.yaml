@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # Upstream native manifests pinned by tag, same content as the previously
+  # vendored metallb-native.yaml. Renovate bumps the ref.
+  - github.com/metallb/metallb/config/native?ref=v0.14.5
+  - config.yaml
