@@ -1,0 +1,16 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    "schedule:weekly"
+  ],
+  "semanticCommits": "disabled",
+  "commitMessagePrefix": "Chore:",
+  "argocd": {
+    "managerFilePatterns": [
+      "/^kubernetes/bootstrap/root\\.yaml$/",
+      "/^kubernetes/clusters/devata/.+\\.ya?ml$/"
+    ]
+  }
+}
