@@ -50,7 +50,7 @@ lab/
 ├── lab-experiments/           # the sandbox, the reconciler NEVER points here, safe to break
 │   └── kubernetes/            # practice manifests and one off experiments
 │
-├── kubernetes-fundamentals/   # learning notes
+├── archive/                   # finished learning material, kept for the record
 └── blogs/                     # published write ups
 ```
 
