@@ -7,3 +7,4 @@ customization:
     officialExtensions:
       - siderolabs/nonfree-kmod-nvidia-lts
       - siderolabs/nvidia-container-toolkit-lts
+# Derived (content-addressed): schematic ID af8eb82417d3deaa94d2ef19c3b590b0dac1b2549d0b9b35b3da2bc325de75f7
