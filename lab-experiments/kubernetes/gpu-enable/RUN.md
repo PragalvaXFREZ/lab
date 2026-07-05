@@ -50,3 +50,7 @@ kubectl apply -f smoke-test.yaml   # runs nvidia-smi in a pod requesting nvidia.
 kubectl logs job/nvidia-smi
 ```
 A successful `nvidia-smi` table = the whole stack (metal → driver → runtime → device plugin → scheduler) is lit.
+
+---
+
+Graduated: the two schematics now live in `talos/schematics/` (nvidia-production, nvidia-lts535) and the RuntimeClass is reconciled from `kubernetes/infra/controllers/nvidia-device-plugin/runtimeclass/`. This log stays as the record of how they were proven out.
