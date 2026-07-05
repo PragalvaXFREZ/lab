@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+    paths:
+      - "kubernetes/**"
+      - ".github/workflows/ci.yaml"
+
+env:
+  KUBECONFORM_VERSION: v0.8.0
+
+jobs:
+  kubeconform:
+    name: kubeconform kubernetes/
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kubeconform
+        run: |
+          curl -sSL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            | sudo tar xz -C /usr/local/bin kubeconform
+
+      # values.yaml files are helm inputs, not manifests, so they are excluded.
+      # CRD kinds are skipped: the default schema registry has no schema for
+      # CustomResourceDefinition itself. CRs are validated against the datree
+      # CRD catalog (argoproj.io, metallb.io, bitnami.com, ...).
+      - name: Validate manifests
+        run: |
+          kubeconform -strict -summary \
+            -skip CustomResourceDefinition \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            -ignore-filename-pattern '.*values\.yaml' \
+            -ignore-filename-pattern '.*\.md' \
+            -ignore-filename-pattern '.*\.pem' \
+            kubernetes/
+
+  helm-template:
+    name: helm template each Application
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Discovers chart-backed Applications from the manifests themselves, so a
+      # new app is covered the moment its Application lands, with no CI edit.
+      - name: Render charts with repo values
+        run: |
+          set -euo pipefail
+          for f in kubernetes/bootstrap/root.yaml kubernetes/clusters/devata/*.yaml; do
+            [ "$(yq '.kind' "$f")" = "Application" ] || continue
+            repo=$(yq '(.spec.sources // [.spec.source]) | map(select(.chart)) | .[0].repoURL // ""' "$f")
+            [ -n "$repo" ] || continue
+            name=$(yq '.metadata.name' "$f")
+            chart=$(yq '(.spec.sources // [.spec.source]) | map(select(.chart)) | .[0].chart' "$f")
+            version=$(yq '(.spec.sources // [.spec.source]) | map(select(.chart)) | .[0].targetRevision' "$f")
+            ns=$(yq '.spec.destination.namespace' "$f")
+            args=()
+            while IFS= read -r v; do
+              [ -n "$v" ] && args+=(-f "${v#\$values/}")
+            done < <(yq '(.spec.sources // [.spec.source]) | map(select(.chart)) | .[0].helm.valueFiles // [] | .[]' "$f")
+            echo "::group::${name} (${chart} ${version})"
+            helm template "$name" "$chart" --repo "$repo" --version "$version" --namespace "$ns" "${args[@]}" > /dev/null
+            echo "::endgroup::"
+          done
