@@ -11,7 +11,7 @@ spec:
       targetRevision: 7.0.0
       helm:
         valueFiles:
-          - $values/kubernetes/infra/logging/loki/values.yaml
+          - $values/kubernetes/infra/observability/loki/values.yaml
     - repoURL: https://github.com/PragalvaXFREZ/lab.git
       targetRevision: main
       ref: values

@@ -11,7 +11,7 @@ spec:
       targetRevision: 6.17.1
       helm:
         valueFiles:
-          - $values/kubernetes/infra/logging/promtail/values.yaml
+          - $values/kubernetes/infra/observability/promtail/values.yaml
     - repoURL: https://github.com/PragalvaXFREZ/lab.git
       targetRevision: main
       ref: values

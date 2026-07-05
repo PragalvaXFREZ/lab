@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/PragalvaXFREZ/lab.git
     targetRevision: main
-    path: kubernetes/infra/network/metallb
+    path: kubernetes/infra/networking/metallb
   destination:
     server: https://kubernetes.default.svc
     namespace: metallb-system
