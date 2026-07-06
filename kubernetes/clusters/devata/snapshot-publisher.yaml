@@ -1,7 +1,6 @@
-# Automation deliberately off at first, the same drill as every adoption:
-# the root app creates this child, the first sync is manual, and automated
-# {prune, selfHeal} plus the CronJob's suspend flag flip in a follow-up PR
-# once the publisher has been watched end to end.
+# Automation was off at birth, the same drill as every adoption: the root
+# app created this child, the first sync was manual, and the first publish
+# run was verified end to end (2026-07-06) before prune and selfHeal came on.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -17,5 +16,8 @@ spec:
     server: https://kubernetes.default.svc
     namespace: showcase
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true

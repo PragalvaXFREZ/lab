@@ -1,13 +1,13 @@
-# Ships suspended on purpose. The first runs are fired by hand with
+# Born suspended, enabled after the first manual run was verified end to end
+# (render, schema gate, leak grep, push all eyeballed on 2026-07-06). A manual
+# run can still be fired anytime with
 #   kubectl create job snap-manual --from=cronjob/snapshot-publisher -n showcase
-# and eyeballed end to end; the schedule is enabled in a follow-up PR once the
-# output has been verified against the safety model. Every non-default line is
-# a decision: hourly because each commit is one cell of the uptime ledger the
-# portfolio renders, Forbid because two publishers must not race a git push,
-# startingDeadlineSeconds because a cluster that sleeps for two days must not
-# wedge the CronJob permanently, backoffLimit 1 because the next hourly tick is
-# the retry, Never so failed pods keep their logs, activeDeadlineSeconds so a
-# hung push cannot block every later run.
+# Every non-default line is a decision: hourly because each commit is one cell
+# of the uptime ledger the portfolio renders, Forbid because two publishers
+# must not race a git push, startingDeadlineSeconds because a cluster that
+# sleeps for two days must not wedge the CronJob permanently, backoffLimit 1
+# because the next hourly tick is the retry, Never so failed pods keep their
+# logs, activeDeadlineSeconds so a hung push cannot block every later run.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -15,7 +15,6 @@ metadata:
   namespace: showcase
 spec:
   schedule: "0 * * * *"
-  suspend: true
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 600
   successfulJobsHistoryLimit: 2

@@ -20,7 +20,7 @@ Push, not pull: CGNAT means nothing outside can reach in, and the cluster is all
 | `configmap-scripts.yaml` | `publish.sh` (single source of truth, no loose copy exists) and the pinned `known_hosts` |
 | `configmap-schema.yaml` | The v1 schema the gate enforces, embedded so Argo never tries to apply a loose `.json` |
 | `sealedsecret-snapshot-push-credential.yaml` | The deploy key, encrypted to the cluster's sealed-secrets key |
-| `cronjob.yaml` | Hourly, currently `suspend: true`, every non-default line commented |
+| `cronjob.yaml` | Hourly, every non-default line commented |
 | `image/` | Dockerfile for the toolbox image; built by the `publisher image` workflow on merge |
 
 ## Operating it
@@ -48,4 +48,4 @@ curl -s https://raw.githubusercontent.com/PragalvaXFREZ/devata-snapshot/main/sna
 check-jsonschema --schemafile /tmp/schema.json /tmp/broken.json
 ```
 
-Once the output has been verified, a follow-up PR sets `suspend: false` and turns on the Application's automated sync policy.
+The CronJob was born with `suspend: true` and the Application with automation off. Both flipped in a follow-up PR after the first manual run was verified end to end against the safety model: render checked against the live cluster, gate proven to reject a stray field, leak grep clean, push confirmed at the raw URL. One known hardening item remains: the pod runs as root (Alpine's default) and the showcase namespace warns against the restricted PodSecurity profile; moving to runAsNonRoot is a future image change.
