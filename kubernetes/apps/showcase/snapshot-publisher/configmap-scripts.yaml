@@ -1,0 +1,148 @@
+apiVersion: v1
+data:
+  known_hosts: |
+    github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+    github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+    github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
+  publish.sh: |
+    #!/bin/sh
+    set -eu
+
+    # Read state, read-only. The in-cluster ServiceAccount token authenticates
+    # automatically; the ClusterRole in rbac.yaml is the exact list of what this
+    # script may see.
+    kubectl get nodes -o json > /tmp/nodes.json
+    kubectl get namespaces -o json > /tmp/ns.json
+    kubectl get services -A -o json > /tmp/svc.json
+    kubectl get persistentvolumeclaims -A -o json > /tmp/pvc.json
+    kubectl get applications.argoproj.io -n argocd -o json > /tmp/apps.json
+    kubectl get deployments -A -o json > /tmp/deployments.json
+    kubectl get daemonsets -A -o json > /tmp/daemonsets.json
+    kubectl get statefulsets -A -o json > /tmp/statefulsets.json
+    kubectl get pods -A -o json > /tmp/pods.json
+
+    NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+    # Build the public document by selecting safe fields into a new object.
+    # This is an allowlist: a field that is not named here does not exist in the
+    # output, so a new field Kubernetes adds next year cannot leak by default.
+    # Node identities become positional aliases; IPs and real hostnames are never
+    # read out of the source objects.
+    jq -n \
+      --arg now "$NOW" \
+      --slurpfile nodes /tmp/nodes.json \
+      --slurpfile ns /tmp/ns.json \
+      --slurpfile svc /tmp/svc.json \
+      --slurpfile pvc /tmp/pvc.json \
+      --slurpfile apps /tmp/apps.json \
+      --slurpfile deployments /tmp/deployments.json \
+      --slurpfile daemonsets /tmp/daemonsets.json \
+      --slurpfile statefulsets /tmp/statefulsets.json \
+      --slurpfile pods /tmp/pods.json '
+      def iscp($n): $n.metadata.labels | has("node-role.kubernetes.io/control-plane");
+      def ready($n): ([$n.status.conditions[] | select(.type == "Ready") | .status] | first) == "True";
+      def gib($q): ($q | rtrimstr("Ki") | tonumber / 1048576);
+      def nodebody($n): {
+        role: (if iscp($n) then "control-plane" else "worker" end),
+        status: (if ready($n) then "Ready" else "NotReady" end),
+        vcpu: ($n.status.capacity.cpu | tonumber),
+        memoryGiB: ((gib($n.status.capacity.memory) * 10) | round / 10),
+        ageDays: (((now - ($n.metadata.creationTimestamp | fromdateiso8601)) / 86400) | floor)
+      };
+      ($nodes[0].items) as $N |
+      ($svc[0].items) as $S |
+      ($pvc[0].items) as $P |
+      {
+        schemaVersion: "1.1.0",
+        generatedAt: $now,
+        generator: {
+          name: "devata-snapshot-publisher",
+          version: "0.1.0",
+          method: "read-only Kubernetes API via a scoped ServiceAccount"
+        },
+        freshness: { clusterPowered: true, maxAgeHours: 24 },
+        cluster: {
+          name: "devata",
+          distribution: "Talos Linux",
+          osVersion: ($N[0].status.nodeInfo.osImage | capture("\\((?<v>v[^)]+)\\)").v),
+          kubernetesVersion: ($N[0].status.nodeInfo.kubeletVersion),
+          cni: { name: "Cilium", notes: "eBPF dataplane, kube-proxy replacement, Hubble observability" },
+          loadBalancer: "MetalLB (L2)",
+          gitops: "Argo CD app-of-apps; zero imperative Helm state",
+          ingress: "none yet; Gateway API planned",
+          secretsManagement: "Sealed Secrets",
+          publicExposure: "none; behind CGNAT, outbound-only"
+        },
+        totals: {
+          nodes: ($N | length),
+          nodesReady: ([$N[] | select(ready(.))] | length),
+          vcpu: ([$N[].status.capacity.cpu | tonumber] | add),
+          memoryGiB: ((([$N[] | gib(.status.capacity.memory)] | add) * 10) | round / 10),
+          namespaces: ($ns[0].items | length),
+          exposedServices: ([$S[] | select(.spec.type == "LoadBalancer")] | length),
+          persistentVolumeClaims: ($P | length)
+        },
+        nodes: (
+          ([ $N[] | select(iscp(.)) ]       | to_entries | map({id: "cp-\(.key + 1)"}     + nodebody(.value))) +
+          ([ $N[] | select(iscp(.) | not) ] | to_entries | map({id: "worker-\(.key + 1)"} + nodebody(.value)))
+        ),
+        services: ([
+          { name: "Grafana",   match: "grafana",       purpose: "dashboards over cluster metrics" },
+          { name: "Hubble UI", match: "hubble-ui",     purpose: "eBPF network flow observability" },
+          { name: "Argo CD",   match: "argocd-server", purpose: "GitOps reconciler UI" }
+        ] | map(. as $item | {
+          name: $item.name,
+          exposure: "lan-only",
+          status: (if ([$S[] | select(.metadata.name | test($item.match))] | length) > 0 then "up" else "unknown" end),
+          purpose: $item.purpose
+        })),
+        observability: [
+          { name: "kube-prometheus-stack", purpose: "metrics, alerting, Grafana dashboards" },
+          { name: "Loki",     purpose: "log aggregation" },
+          { name: "Promtail", purpose: "log shipping from every node" },
+          { name: "Hubble",   purpose: "eBPF network flow visibility" }
+        ],
+        storage: {
+          defaultClass: "local-path",
+          replicated: false,
+          claims: ($P | length),
+          totalGiB: ([$P[].spec.resources.requests.storage | rtrimstr("Gi") | tonumber] | add // 0 | floor)
+        },
+        gpu: {
+          present: true,
+          usable: false,
+          model: "GTX 1650 Ti (4 GB)",
+          reason: "card firmware fault, driver cannot read the VBIOS; nvidia.com/gpu never advertised"
+        },
+        apps: ($apps[0].items | map({
+          name: .metadata.name,
+          synced: (.status.sync.status == "Synced"),
+          healthy: (.status.health.status == "Healthy")
+        }) | sort_by(.name)),
+        workloads: {
+          deployments: ($deployments[0].items | length),
+          daemonsets: ($daemonsets[0].items | length),
+          statefulsets: ($statefulsets[0].items | length),
+          pods: ($pods[0].items | length)
+        }
+      }' > /tmp/snapshot.json
+
+    # The gate. check-jsonschema exits non-zero on any violation and set -eu stops
+    # the run, so a document that does not match the contract is never pushed.
+    check-jsonschema --schemafile /schema/snapshot.schema.v1.json /tmp/snapshot.json
+
+    # Push. Every run commits, even when nothing changed but the timestamp: the
+    # commit history doubles as the cluster's off-cluster uptime ledger. The push
+    # credential is a deploy key that can write to exactly one repo, mounted from
+    # the snapshot-push-credential SealedSecret. Host keys are pinned, no TOFU.
+    export GIT_SSH_COMMAND="ssh -i /credentials/ssh-privatekey -o UserKnownHostsFile=/scripts/known_hosts -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes"
+    git clone --depth 1 git@github.com:PragalvaXFREZ/devata-snapshot.git /tmp/repo
+    cp /tmp/snapshot.json /tmp/repo/snapshot.json
+    cd /tmp/repo
+    git add snapshot.json
+    git -c user.name="devata snapshot publisher" -c user.email="publisher@devata.local" commit -m "snapshot ${NOW}"
+    git push origin HEAD:main
+kind: ConfigMap
+metadata:
+  name: snapshot-publisher-scripts
+  namespace: showcase

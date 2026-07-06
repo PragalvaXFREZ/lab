@@ -1,0 +1,188 @@
+apiVersion: v1
+data:
+  snapshot.schema.v1.json: |
+    {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://vault.pragalva.me/schemas/devata-snapshot/v1.json",
+      "title": "devata public cluster snapshot, version 1",
+      "description": "The stable contract between the inside of the homelab and the public site. The cluster renders a document matching this schema and pushes it outbound (CGNAT forbids inbound), and a static front end consumes it. PUBLIC-SAFE BY DESIGN. The following are intentionally NOT in this schema and must never be added to v1: internal IP addresses, MetalLB or service addresses, real node hostnames, kubeconfig or apiserver endpoints, secret names or values, tokens, image registry credentials, pod-level detail, or anything that aids reaching or attacking the cluster. Node identity is an opaque alias, not the real Talos name. If a future need requires a new field, bump schemaVersion (minor for additive, major for breaking) rather than leaking a redacted field.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "generatedAt", "generator", "freshness", "cluster", "totals", "nodes", "services", "storage", "gpu"],
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "pattern": "^1\\.[0-9]+\\.[0-9]+$",
+          "description": "Semantic version of THIS schema. The consumer pins a major version. Additive fields bump minor; breaking changes bump major and the consumer must opt in."
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the publisher produced this document (UTC, RFC 3339). The consumer compares this to freshness.maxAgeHours to decide if the data is stale."
+        },
+        "generator": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version", "method"],
+          "description": "Provenance of the snapshot, so the public page can say how the data was produced.",
+          "properties": {
+            "name": { "type": "string", "description": "Publisher identity, e.g. devata-snapshot-publisher." },
+            "version": { "type": "string", "description": "Publisher version." },
+            "method": { "type": "string", "description": "How state was read, e.g. read-only Kubernetes API via a scoped ServiceAccount." }
+          }
+        },
+        "freshness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["clusterPowered", "maxAgeHours"],
+          "description": "Lets the consumer degrade gracefully. The cluster is intermittently powered off; the last good snapshot persists and the page should show it with an honest age, never break.",
+          "properties": {
+            "clusterPowered": { "type": "boolean", "description": "Whether the cluster was reachable at capture. A scheduled publisher that cannot reach the cluster should leave the previous snapshot in place rather than overwrite with an empty one." },
+            "maxAgeHours": { "type": "integer", "minimum": 1, "description": "Contract hint: the consumer should label the snapshot stale past this age." }
+          }
+        },
+        "cluster": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "distribution", "kubernetesVersion"],
+          "description": "Headline facts about the platform. All values here are safe to show publicly.",
+          "properties": {
+            "name": { "type": "string", "description": "Cluster display name, e.g. devata." },
+            "distribution": { "type": "string", "description": "Kubernetes distribution, e.g. Talos Linux." },
+            "osVersion": { "type": "string", "description": "Talos version, e.g. v1.11.5." },
+            "kubernetesVersion": { "type": "string", "description": "Kubernetes version, e.g. v1.34.1." },
+            "cni": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name"],
+              "properties": {
+                "name": { "type": "string" },
+                "version": { "type": "string" },
+                "notes": { "type": "string", "description": "Short public note, e.g. eBPF dataplane, kube-proxy replacement." }
+              }
+            },
+            "loadBalancer": { "type": "string", "description": "Load balancer in words only, no addresses, e.g. MetalLB (L2)." },
+            "gitops": { "type": "string", "description": "Honest current state, e.g. manual Helm, or Argo CD app-of-apps. Evolves as the roadmap progresses." },
+            "ingress": { "type": "string", "description": "Words only, e.g. Gateway API CRDs installed, no controller wired." },
+            "secretsManagement": { "type": "string", "description": "Words only, e.g. none yet, or Sealed Secrets." },
+            "publicExposure": { "type": "string", "description": "Words only, e.g. none; behind CGNAT, outbound-only via Cloudflare Tunnel." }
+          }
+        },
+        "totals": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["nodes", "vcpu", "memoryGiB"],
+          "description": "Derived counts the page renders as stat cards. Counts only, never addresses.",
+          "properties": {
+            "nodes": { "type": "integer", "minimum": 0 },
+            "nodesReady": { "type": "integer", "minimum": 0 },
+            "vcpu": { "type": "integer", "minimum": 0 },
+            "memoryGiB": { "type": "number", "minimum": 0 },
+            "namespaces": { "type": "integer", "minimum": 0 },
+            "exposedServices": { "type": "integer", "minimum": 0, "description": "Count of externally-typed services. The count is safe; the addresses are not, so addresses are excluded." },
+            "persistentVolumeClaims": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "description": "Per-node summary with an OPAQUE alias, not the real Talos hostname and never an IP.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "role", "status"],
+            "properties": {
+              "id": { "type": "string", "description": "Opaque stable alias, e.g. cp-1, worker-1. NOT the real node name." },
+              "role": { "type": "string", "enum": ["control-plane", "worker"] },
+              "status": { "type": "string", "enum": ["Ready", "NotReady", "Unknown"] },
+              "vcpu": { "type": "integer", "minimum": 0 },
+              "memoryGiB": { "type": "number", "minimum": 0 },
+              "diskGiB": { "type": "integer", "minimum": 0 },
+              "ageDays": { "type": "integer", "minimum": 0 },
+              "note": { "type": "string", "description": "Optional public-safe note, e.g. newest node, NVMe, holds the dead GPU." }
+            }
+          }
+        },
+        "services": {
+          "type": "array",
+          "description": "Notable services by display name and exposure class only. No addresses, no namespaces that reveal internal structure beyond what is already public.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "exposure", "status"],
+            "properties": {
+              "name": { "type": "string", "description": "Display name, e.g. Grafana, Hubble UI." },
+              "exposure": { "type": "string", "enum": ["lan-only", "public", "internal"], "description": "lan-only is reachable on the home LAN only; public is reachable on the internet (read-only) via Cloudflare Tunnel; internal is cluster-internal." },
+              "status": { "type": "string", "enum": ["up", "down", "unknown"] },
+              "purpose": { "type": "string", "description": "One short public phrase." }
+            }
+          }
+        },
+        "observability": {
+          "type": "array",
+          "description": "Optional. The observability stack as a public capability list (this is a portfolio strength, safe to show).",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "purpose"],
+            "properties": {
+              "name": { "type": "string" },
+              "purpose": { "type": "string" },
+              "version": { "type": "string" }
+            }
+          }
+        },
+        "storage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["defaultClass", "replicated"],
+          "description": "Storage posture in summary. Counts and class names only.",
+          "properties": {
+            "defaultClass": { "type": "string", "description": "e.g. local-path." },
+            "replicated": { "type": "boolean", "description": "Honest: false today (single-node local-path)." },
+            "claims": { "type": "integer", "minimum": 0 },
+            "totalGiB": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "gpu": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["present", "usable"],
+          "description": "Honesty is the point: show the dead GPU, do not hide it. A working cluster shown with honest caveats reads as operational judgement.",
+          "properties": {
+            "present": { "type": "boolean" },
+            "usable": { "type": "boolean" },
+            "model": { "type": "string", "description": "e.g. GTX 1650 Ti (4 GB)." },
+            "reason": { "type": "string", "description": "If not usable, the honest one-line reason, e.g. VBIOS/firmware fault; nvidia.com/gpu never advertised." }
+          }
+        },
+        "apps": {
+          "type": "array",
+          "description": "Added in 1.1.0 (optional, additive). Argo CD Applications by name with sync and health as booleans. App names are safe: they are already public in the lab repo the cluster reconciles from. No revisions, no repo URLs beyond what is public, no messages (condition messages can embed internal detail).",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "synced", "healthy"],
+            "properties": {
+              "name": { "type": "string", "description": "Application name, e.g. cilium." },
+              "synced": { "type": "boolean", "description": "status.sync.status == Synced." },
+              "healthy": { "type": "boolean", "description": "status.health.status == Healthy." }
+            }
+          }
+        },
+        "workloads": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Added in 1.1.0 (optional, additive). Cluster-wide workload counts. Counts only, never names: pod and workload names can leak internal structure, totals cannot.",
+          "properties": {
+            "deployments": { "type": "integer", "minimum": 0 },
+            "daemonsets": { "type": "integer", "minimum": 0 },
+            "statefulsets": { "type": "integer", "minimum": 0 },
+            "pods": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+kind: ConfigMap
+metadata:
+  name: snapshot-schema-v1
+  namespace: showcase
