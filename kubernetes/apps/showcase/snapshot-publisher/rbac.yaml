@@ -1,0 +1,32 @@
+# Read-only, and exactly as wide as the fields the snapshot publishes.
+# No secrets, no writes, no watch. Each rule maps to a section of the
+# document: core resources feed cluster/totals/nodes/services/storage,
+# the apps group and argoproj.io feed the schema 1.1.0 apps and workloads
+# fields (counts and Argo app names only, both already public in this repo).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: snapshot-reader
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "namespaces", "services", "persistentvolumeclaims", "pods"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "daemonsets", "statefulsets"]
+    verbs: ["get", "list"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: snapshot-publisher-can-read
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: snapshot-reader
+subjects:
+  - kind: ServiceAccount
+    name: snapshot-publisher
+    namespace: showcase

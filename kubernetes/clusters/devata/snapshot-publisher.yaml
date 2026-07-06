@@ -1,0 +1,21 @@
+# Automation deliberately off at first, the same drill as every adoption:
+# the root app creates this child, the first sync is manual, and automated
+# {prune, selfHeal} plus the CronJob's suspend flag flip in a follow-up PR
+# once the publisher has been watched end to end.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snapshot-publisher
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/PragalvaXFREZ/lab.git
+    targetRevision: main
+    path: kubernetes/apps/showcase/snapshot-publisher
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: showcase
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
