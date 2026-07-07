@@ -53,11 +53,11 @@ data:
       ($svc[0].items) as $S |
       ($pvc[0].items) as $P |
       {
-        schemaVersion: "1.1.0",
+        schemaVersion: "1.2.0",
         generatedAt: $now,
         generator: {
           name: "devata-snapshot-publisher",
-          version: "0.1.0",
+          version: "0.2.0",
           method: "read-only Kubernetes API via a scoped ServiceAccount"
         },
         freshness: { clusterPowered: true, maxAgeHours: 24 },
@@ -127,16 +127,78 @@ data:
         }
       }' > /tmp/snapshot.json
 
+    # Clone before the logo pass: the previous published snapshot doubles as the
+    # fallback cache when Artifact Hub is unreachable. The push credential is a
+    # deploy key that can write to exactly one repo, mounted from the
+    # snapshot-push-credential SealedSecret. Host keys are pinned, no TOFU.
+    export GIT_SSH_COMMAND="ssh -i /credentials/ssh-privatekey -o UserKnownHostsFile=/scripts/known_hosts -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes"
+    git clone --depth 1 git@github.com:PragalvaXFREZ/devata-snapshot.git /tmp/repo
+
+    # The logo pass (1.2.0). Every tool the document names is looked up on
+    # Artifact Hub and, on a confident match, its mark ships as
+    # logos["<exact emitted string>"], so the consumer renders a plain key
+    # lookup and never normalizes names itself. Confident means: the
+    # normalized chart name (or display name) equals the query term, or
+    # overlaps it AND the package is flagged official — a fuzzy match to some
+    # third-party chart must not brand a tile with the wrong project's art.
+    # Best-effort by construction: a dead or slow Artifact Hub degrades to the
+    # previous snapshot's entry for that tool, then to absence, and can never
+    # fail the publish. The schema pins every url to artifacthub.io/image/,
+    # so this block cannot point a browser anywhere else even when it is wrong.
+    PREV_LOGOS="$(jq -c '.logos // {}' /tmp/repo/snapshot.json 2>/dev/null || echo '{}')"
+    jq -r '
+      ([.cluster.distribution, "Kubernetes"]
+       + [.cluster.cni.name // empty]
+       + [.cluster.loadBalancer // empty, .cluster.gitops // empty, .cluster.secretsManagement // empty]
+       + [.observability[]?.name]
+       + [.services[].name]
+       + [.storage.defaultClass]
+       + (if .gpu.present then [.gpu.model // empty] else [] end))
+      | unique | .[]' /tmp/snapshot.json > /tmp/logo-names.txt
+    echo '{}' > /tmp/logos.json
+    while IFS= read -r NAME; do
+      [ -n "$NAME" ] || continue
+      # The query term is the first clause, first two words: "MetalLB (L2)"
+      # asks for MetalLB, the gitops prose asks for Argo CD.
+      TERM="$(printf '%s\n' "$NAME" | sed 's/[(;,].*$//' | awk '{ printf "%s", $1; if (NF > 1) printf " %s", $2 }')"
+      [ -n "$TERM" ] || continue
+      Q="$(jq -rn --arg s "$TERM" '$s|@uri')"
+      ENTRY="$(curl -fsS -m 10 "https://artifacthub.io/api/v1/packages/search?kind=0&ts_query_web=${Q}&limit=10" 2>/dev/null | jq -c --arg term "$TERM" '
+        def norm: ascii_downcase | gsub("[^a-z0-9]"; "");
+        ($term | norm) as $t
+        | [ .packages[]?
+            | select(.logo_image_id)
+            | { n: (.name | norm),
+                d: ((.display_name // "") | norm),
+                official: ((.official // false) or (.repository.official // false)),
+                verified: (.repository.verified_publisher // false),
+                stars: (.stars // 0),
+                url: ("https://artifacthub.io/image/" + .logo_image_id),
+                from: ("artifacthub.io/packages/helm/" + .repository.name + "/" + .normalized_name) }
+            | select(.n == $t or .d == $t or (.n | contains($t)) or (.n | inside($t)))
+            | . + { rank: (if .n == $t or .d == $t then 0 else 1 end) }
+            | select(.rank == 0 or .official) ]
+        | sort_by(.rank, (if .official then 0 else 1 end), (if .verified then 0 else 1 end), -.stars)
+        | first // empty
+        | { url, from }' 2>/dev/null || true)"
+      if [ -z "$ENTRY" ]; then
+        ENTRY="$(printf '%s\n' "$PREV_LOGOS" | jq -c --arg n "$NAME" '.[$n] // empty')"
+      fi
+      [ -n "$ENTRY" ] || continue
+      jq -c --arg n "$NAME" --argjson e "$ENTRY" '. + { ($n): $e }' /tmp/logos.json > /tmp/logos.json.next
+      mv /tmp/logos.json.next /tmp/logos.json
+    done < /tmp/logo-names.txt
+    jq --slurpfile L /tmp/logos.json '
+      . + (if ($L[0] | length) > 0 then { logos: $L[0] } else {} end)
+    ' /tmp/snapshot.json > /tmp/snapshot.merged.json
+    mv /tmp/snapshot.merged.json /tmp/snapshot.json
+
     # The gate. check-jsonschema exits non-zero on any violation and set -eu stops
     # the run, so a document that does not match the contract is never pushed.
     check-jsonschema --schemafile /schema/snapshot.schema.v1.json /tmp/snapshot.json
 
     # Push. Every run commits, even when nothing changed but the timestamp: the
-    # commit history doubles as the cluster's off-cluster uptime ledger. The push
-    # credential is a deploy key that can write to exactly one repo, mounted from
-    # the snapshot-push-credential SealedSecret. Host keys are pinned, no TOFU.
-    export GIT_SSH_COMMAND="ssh -i /credentials/ssh-privatekey -o UserKnownHostsFile=/scripts/known_hosts -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes"
-    git clone --depth 1 git@github.com:PragalvaXFREZ/devata-snapshot.git /tmp/repo
+    # commit history doubles as the cluster's off-cluster uptime ledger.
     cp /tmp/snapshot.json /tmp/repo/snapshot.json
     cd /tmp/repo
     git add snapshot.json

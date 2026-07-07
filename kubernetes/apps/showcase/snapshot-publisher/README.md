@@ -23,6 +23,10 @@ Push, not pull: CGNAT means nothing outside can reach in, and the cluster is all
 | `cronjob.yaml` | Hourly, every non-default line commented |
 | `image/` | Dockerfile for the toolbox image; built by the `publisher image` workflow on merge |
 
+## The logo pass
+
+Since 1.2.0 the document also carries `logos`: for every tool it names, the publisher asks Artifact Hub for the package's mark and, on a confident match (exact chart-name match, or an overlapping name on a package flagged official), ships the image URL keyed by the exact emitted string. The consumer does a plain key lookup and never queries Artifact Hub itself; a visitor's browser touches artifacthub.io only to fetch images, and the schema's `url` pattern admits `https://artifacthub.io/image/<uuid>` and nothing else. The pass is best-effort by construction: a dead Artifact Hub degrades to the previous snapshot's entries, then to absence, and can never fail a publish.
+
 ## Operating it
 
 Fire a run without waiting for the clock:
