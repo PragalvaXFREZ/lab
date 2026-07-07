@@ -35,7 +35,7 @@ data:
           "type": "object",
           "additionalProperties": false,
           "required": ["clusterPowered", "maxAgeHours"],
-          "description": "Lets the consumer degrade gracefully. The cluster is intermittently powered off; the last good snapshot persists and the page should show it with an honest age, never break.",
+          "description": "Lets the consumer degrade gracefully. Home power and uplink are not guaranteed; the last good snapshot persists and the page should show it with an honest age, never break.",
           "properties": {
             "clusterPowered": { "type": "boolean", "description": "Whether the cluster was reachable at capture. A scheduled publisher that cannot reach the cluster should leave the previous snapshot in place rather than overwrite with an empty one." },
             "maxAgeHours": { "type": "integer", "minimum": 1, "description": "Contract hint: the consumer should label the snapshot stale past this age." }

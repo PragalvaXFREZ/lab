@@ -139,7 +139,23 @@ data:
     git clone --depth 1 git@github.com:PragalvaXFREZ/devata-snapshot.git /tmp/repo
     cp /tmp/snapshot.json /tmp/repo/snapshot.json
     cd /tmp/repo
-    git add snapshot.json
+
+    # The heartbeat file: a rolling window of this job's own run timestamps,
+    # kept so consumers can read the uptime ledger as one raw file instead of
+    # walking the commit log through the REST API, which rate-limits anonymous
+    # browsers at 60 requests an hour. Nothing here is read from the cluster,
+    # only this job's clock, so the file sits outside the allowlist and the
+    # schema gate by construction. The commit history remains the audit trail:
+    # every beat below has a matching commit. A malformed file is rebuilt from
+    # scratch rather than allowed to block the snapshot push.
+    if jq -e '.beats | type == "array"' heartbeat.json >/dev/null 2>&1; then
+      jq --arg now "$NOW" '{schemaVersion: "1.0.0", beats: ((.beats + [$now]) | .[-336:])}' heartbeat.json > /tmp/heartbeat.json
+    else
+      jq -n --arg now "$NOW" '{schemaVersion: "1.0.0", beats: [$now]}' > /tmp/heartbeat.json
+    fi
+    cp /tmp/heartbeat.json heartbeat.json
+
+    git add snapshot.json heartbeat.json
     git -c user.name="devata snapshot publisher" -c user.email="publisher@devata.local" commit -m "snapshot ${NOW}"
     git push origin HEAD:main
 kind: ConfigMap
