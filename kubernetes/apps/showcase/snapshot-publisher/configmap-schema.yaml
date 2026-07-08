@@ -104,30 +104,15 @@ data:
         },
         "services": {
           "type": "array",
-          "description": "Notable services by display name and exposure class only. No addresses, no namespaces that reveal internal structure beyond what is already public.",
+          "description": "Exposed services. Since 1.3.0 this is derived, not curated: every LoadBalancer service that Argo CD tracks (and only those) appears here, named by its metadata.name. The gate is the tracking annotation: an Argo-tracked object's manifest is already public in the lab repo, so the name reveals nothing new; an imperatively created object has no tracking-id and is never published. No addresses. The 1.2.0 purpose field was removed in 1.3.0; the observability array was removed in 1.3.0 (the apps array is the derived inventory).",
           "items": {
             "type": "object",
             "additionalProperties": false,
             "required": ["name", "exposure", "status"],
             "properties": {
-              "name": { "type": "string", "description": "Display name, e.g. Grafana, Hubble UI." },
+              "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.-]{0,62}$", "description": "The service's metadata.name, e.g. kps-grafana, hubble-ui. Kubernetes DNS-label shaped; the pattern rejects anything else." },
               "exposure": { "type": "string", "enum": ["lan-only", "public", "internal"], "description": "lan-only is reachable on the home LAN only; public is reachable on the internet (read-only) via Cloudflare Tunnel; internal is cluster-internal." },
-              "status": { "type": "string", "enum": ["up", "down", "unknown"] },
-              "purpose": { "type": "string", "description": "One short public phrase." }
-            }
-          }
-        },
-        "observability": {
-          "type": "array",
-          "description": "Optional. The observability stack as a public capability list (this is a portfolio strength, safe to show).",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["name", "purpose"],
-            "properties": {
-              "name": { "type": "string" },
-              "purpose": { "type": "string" },
-              "version": { "type": "string" }
+              "status": { "type": "string", "enum": ["up", "down", "unknown"], "description": "Derived from the owning Argo Application's health: Healthy maps to up, anything else to unknown." }
             }
           }
         },
