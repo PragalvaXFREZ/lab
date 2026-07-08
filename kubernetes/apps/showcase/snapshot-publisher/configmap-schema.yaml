@@ -150,7 +150,8 @@ data:
             "properties": {
               "name": { "type": "string", "description": "Application name, e.g. cilium." },
               "synced": { "type": "boolean", "description": "status.sync.status == Synced." },
-              "healthy": { "type": "boolean", "description": "status.health.status == Healthy." }
+              "healthy": { "type": "boolean", "description": "status.health.status == Healthy." },
+              "tier": { "type": "string", "enum": ["platform", "workload"], "description": "Added in 1.3.0 (optional). Read from the devata.pragalva.me/tier label on the Application manifest: platform is what the cluster is made of, workload is what it runs. The consumer's stack panel shows platform apps only; an app with no tier appears in the gitops panel but earns no stack tile." }
             }
           }
         },

@@ -113,11 +113,20 @@ data:
           model: "GTX 1650 Ti (4 GB)",
           reason: "card firmware fault, driver cannot read the VBIOS; nvidia.com/gpu never advertised"
         },
-        apps: ($apps[0].items | map({
-          name: .metadata.name,
-          synced: (.status.sync.status == "Synced"),
-          healthy: (.status.health.status == "Healthy")
-        }) | sort_by(.name)),
+        # tier rides in from the Application manifest itself (the
+        # devata.pragalva.me/tier label), so classifying an app as platform
+        # or workload is a reviewed change in this repo, not publisher code.
+        # Only the two known values are emitted: a typo in the label cannot
+        # fail the publish at the schema gate, the app just carries no tier.
+        apps: ($apps[0].items | map(
+          {
+            name: .metadata.name,
+            synced: (.status.sync.status == "Synced"),
+            healthy: (.status.health.status == "Healthy")
+          }
+          + ((.metadata.labels["devata.pragalva.me/tier"] // null) as $t
+             | if $t == "platform" or $t == "workload" then { tier: $t } else {} end)
+        ) | sort_by(.name)),
         workloads: {
           deployments: ($deployments[0].items | length),
           daemonsets: ($daemonsets[0].items | length),

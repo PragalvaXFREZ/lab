@@ -6,6 +6,8 @@ kind: Application
 metadata:
   name: snapshot-publisher
   namespace: argocd
+  labels:
+    devata.pragalva.me/tier: workload
 spec:
   project: default
   source:
