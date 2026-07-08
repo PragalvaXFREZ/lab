@@ -179,6 +179,19 @@ data:
             "statefulsets": { "type": "integer", "minimum": 0 },
             "pods": { "type": "integer", "minimum": 0 }
           }
+        },
+        "logos": {
+          "type": "object",
+          "description": "Added in 1.2.0 (optional, additive). Marks for the tools this document names, keyed by the exact string emitted elsewhere (e.g. 'MetalLB (L2)'), so the consumer renders logos[key] as a plain lookup. Resolved by the publisher from Artifact Hub at render time, best-effort: a tool without a confident match is simply absent and the consumer falls back to its own rendering. The url pattern pins every entry to Artifact Hub's image endpoint; the document cannot send a browser anywhere else.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["url"],
+            "properties": {
+              "url": { "type": "string", "pattern": "^https://artifacthub\\.io/image/[0-9a-f-]{36}$" },
+              "from": { "type": "string", "description": "Attribution: the Artifact Hub package the mark came from, e.g. artifacthub.io/packages/helm/metallb/metallb." }
+            }
+          }
         }
       }
     }
