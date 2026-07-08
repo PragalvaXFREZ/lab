@@ -68,7 +68,7 @@ data:
           kubernetesVersion: ($N[0].status.nodeInfo.kubeletVersion),
           cni: { name: "Cilium", notes: "eBPF dataplane, kube-proxy replacement, Hubble observability" },
           loadBalancer: "MetalLB (L2)",
-          gitops: "Argo CD app-of-apps; zero imperative Helm state",
+          gitops: "Argo CD app-of-apps",
           ingress: "none yet; Gateway API planned",
           secretsManagement: "Sealed Secrets",
           publicExposure: "none; behind CGNAT, outbound-only"
@@ -87,7 +87,7 @@ data:
           ([ $N[] | select(iscp(.) | not) ] | to_entries | map({id: "worker-\(.key + 1)"} + nodebody(.value)))
         ),
         services: ([
-          { name: "Grafana",   match: "grafana",       purpose: "dashboards over cluster metrics" },
+          { name: "Grafana",   match: "grafana",       purpose: "cluster metrics dashboards" },
           { name: "Hubble UI", match: "hubble-ui",     purpose: "eBPF network flow observability" },
           { name: "Argo CD",   match: "argocd-server", purpose: "GitOps reconciler UI" }
         ] | map(. as $item | {
@@ -100,7 +100,7 @@ data:
           { name: "kube-prometheus-stack", purpose: "metrics, alerting, Grafana dashboards" },
           { name: "Loki",     purpose: "log aggregation" },
           { name: "Promtail", purpose: "log shipping from every node" },
-          { name: "Hubble",   purpose: "eBPF network flow visibility" }
+          { name: "Hubble",   purpose: "eBPF network flow observability" }
         ],
         storage: {
           defaultClass: "local-path",
