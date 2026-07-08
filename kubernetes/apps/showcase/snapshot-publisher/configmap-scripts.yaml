@@ -53,11 +53,11 @@ data:
       ($svc[0].items) as $S |
       ($pvc[0].items) as $P |
       {
-        schemaVersion: "1.2.0",
+        schemaVersion: "1.3.0",
         generatedAt: $now,
         generator: {
           name: "devata-snapshot-publisher",
-          version: "0.2.0",
+          version: "0.3.0",
           method: "read-only Kubernetes API via a scoped ServiceAccount"
         },
         freshness: { clusterPowered: true, maxAgeHours: 24 },
@@ -79,29 +79,28 @@ data:
           vcpu: ([$N[].status.capacity.cpu | tonumber] | add),
           memoryGiB: ((([$N[] | gib(.status.capacity.memory)] | add) * 10) | round / 10),
           namespaces: ($ns[0].items | length),
-          exposedServices: ([$S[] | select(.spec.type == "LoadBalancer")] | length),
+          exposedServices: ([$S[] | select(.spec.type == "LoadBalancer") | select(.metadata.annotations["argocd.argoproj.io/tracking-id"] != null)] | length),
           persistentVolumeClaims: ($P | length)
         },
         nodes: (
           ([ $N[] | select(iscp(.)) ]       | to_entries | map({id: "cp-\(.key + 1)"}     + nodebody(.value))) +
           ([ $N[] | select(iscp(.) | not) ] | to_entries | map({id: "worker-\(.key + 1)"} + nodebody(.value)))
         ),
-        services: ([
-          { name: "Grafana",   match: "grafana",       purpose: "cluster metrics dashboards" },
-          { name: "Hubble UI", match: "hubble-ui",     purpose: "eBPF network flow observability" },
-          { name: "Argo CD",   match: "argocd-server", purpose: "GitOps reconciler UI" }
-        ] | map(. as $item | {
-          name: $item.name,
-          exposure: "lan-only",
-          status: (if ([$S[] | select(.metadata.name | test($item.match))] | length) > 0 then "up" else "unknown" end),
-          purpose: $item.purpose
-        })),
-        observability: [
-          { name: "kube-prometheus-stack", purpose: "metrics, alerting, Grafana dashboards" },
-          { name: "Loki",     purpose: "log aggregation" },
-          { name: "Promtail", purpose: "log shipping from every node" },
-          { name: "Hubble",   purpose: "eBPF network flow observability" }
-        ],
+        # The gitops gate (0.3.0): a service is published only if Argo CD
+        # tracks it, so only objects whose manifests are already public in
+        # this repo can appear. Anything created imperatively has no
+        # tracking-id and never ships. The tracking-id names the owning
+        # Application; its health decides the published status.
+        services: ([$S[]
+          | select(.spec.type == "LoadBalancer")
+          | select(.metadata.annotations["argocd.argoproj.io/tracking-id"] != null)
+          | (.metadata.annotations["argocd.argoproj.io/tracking-id"] | split(":")[0]) as $owner
+          | {
+              name: .metadata.name,
+              exposure: "lan-only",
+              status: (if ([$apps[0].items[] | select(.metadata.name == $owner and .status.health.status == "Healthy")] | length) > 0 then "up" else "unknown" end)
+            }
+          ] | sort_by(.name)),
         storage: {
           defaultClass: "local-path",
           replicated: false,
@@ -114,11 +113,20 @@ data:
           model: "GTX 1650 Ti (4 GB)",
           reason: "card firmware fault, driver cannot read the VBIOS; nvidia.com/gpu never advertised"
         },
-        apps: ($apps[0].items | map({
-          name: .metadata.name,
-          synced: (.status.sync.status == "Synced"),
-          healthy: (.status.health.status == "Healthy")
-        }) | sort_by(.name)),
+        # tier rides in from the Application manifest itself (the
+        # devata.pragalva.me/tier label), so classifying an app as platform
+        # or workload is a reviewed change in this repo, not publisher code.
+        # Only the two known values are emitted: a typo in the label cannot
+        # fail the publish at the schema gate, the app just carries no tier.
+        apps: ($apps[0].items | map(
+          {
+            name: .metadata.name,
+            synced: (.status.sync.status == "Synced"),
+            healthy: (.status.health.status == "Healthy")
+          }
+          + ((.metadata.labels["devata.pragalva.me/tier"] // null) as $t
+             | if $t == "platform" or $t == "workload" then { tier: $t } else {} end)
+        ) | sort_by(.name)),
         workloads: {
           deployments: ($deployments[0].items | length),
           daemonsets: ($daemonsets[0].items | length),
@@ -150,10 +158,9 @@ data:
       ([.cluster.distribution, "Kubernetes"]
        + [.cluster.cni.name // empty]
        + [.cluster.loadBalancer // empty, .cluster.gitops // empty, .cluster.secretsManagement // empty]
-       + [.observability[]?.name]
+       + [.apps[]?.name]
        + [.services[].name]
-       + [.storage.defaultClass]
-       + (if .gpu.present then [.gpu.model // empty] else [] end))
+       + [.storage.defaultClass])
       | unique | .[]' /tmp/snapshot.json > /tmp/logo-names.txt
     echo '{}' > /tmp/logos.json
     while IFS= read -r NAME; do
