@@ -1,0 +1,14 @@
+# Talos Image Factory schematic for storage-capable Intel bare-metal nodes.
+# The Longhorn extensions are installed now so adding replicated storage later
+# does not require another operating-system image transition on this node.
+customization:
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/intel-ucode
+      - siderolabs/iscsi-tools
+      - siderolabs/util-linux-tools
+
+# Derived schematic ID:
+# 36cd6536eaec8ba802be2d38974108359069cedba8857302f69792b26b87c010
+# Upstream installer:
+# factory.talos.dev/metal-installer/36cd6536eaec8ba802be2d38974108359069cedba8857302f69792b26b87c010:v1.11.5

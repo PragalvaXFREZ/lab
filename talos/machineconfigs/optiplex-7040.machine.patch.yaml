@@ -1,0 +1,37 @@
+# Machine-specific patch for the Dell OptiPlex 7040 worker.
+# Apply this to a current devata worker configuration kept outside Git.
+machine:
+  install:
+    disk: /dev/nvme0n1
+    image: 192.168.1.13:5000/installer/36cd6536eaec8ba802be2d38974108359069cedba8857302f69792b26b87c010:v1.11.5
+    wipe: true
+  kubelet:
+    extraMounts:
+      - destination: /var/mnt/longhorn
+        type: bind
+        source: /var/mnt/longhorn
+        options:
+          - bind
+          - rshared
+          - rw
+  network:
+    hostname: talos-opt-7040
+    interfaces:
+      - interface: enp0s31f6
+        addresses:
+          - 192.168.1.10/24
+        routes:
+          - network: 0.0.0.0/0
+            gateway: 192.168.1.1
+        dhcp: false
+    nameservers:
+      - 192.168.1.1
+      - 1.1.1.1
+  registries:
+    mirrors:
+      192.168.1.13:5000:
+        endpoints:
+          - http://192.168.1.13:5000
+cluster:
+  controlPlane:
+    endpoint: https://192.168.1.8:6443

@@ -41,7 +41,7 @@ resultsCache:
   enabled: false
 singleBinary:
   nodeSelector:
-    kubernetes.io/hostname: talos-3eq-vo2
+    kubernetes.io/hostname: talos-opt-7040
   persistence:
     enabled: true
     size: 5Gi
