@@ -1,7 +1,7 @@
 alertmanager:
   enabled: false
 grafana:
-  replicas: 0
+  replicas: 1
   admin:
     existingSecret: grafana-admin
   dashboardProviders:
@@ -26,7 +26,7 @@ grafana:
     kubernetes.io/hostname: talos-opt-7040
   persistence:
     enabled: true
-    existingClaim: kps-grafana-longhorn
+    existingClaim: kps-grafana-rollback
   resources:
     limits:
       memory: 256Mi
