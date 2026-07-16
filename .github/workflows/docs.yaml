@@ -1,0 +1,21 @@
+name: docs
+
+on:
+  pull_request:
+    paths:
+      - "*.md"
+      - "**/*.md"
+      - "scripts/check-docs.py"
+      - ".github/workflows/docs.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: documentation contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check active Markdown and README policy
+        run: python3 scripts/check-docs.py

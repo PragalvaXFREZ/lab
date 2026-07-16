@@ -26,9 +26,9 @@ Beside the snapshot, every run maintains `heartbeat.json`: a rolling window of t
 | `cronjob.yaml` | Hourly, every non-default line commented |
 | `image/` | Dockerfile for the toolbox image; built by the `publisher image` workflow on merge |
 
-## The logo pass
+## Logo resolution
 
-Since 1.2.0 the document also carries `logos`: for every tool it names, the publisher asks Artifact Hub for the package's mark and, on a confident match (exact chart-name match, or an overlapping name on a package flagged official), ships the image URL keyed by the exact emitted string. The consumer does a plain key lookup and never queries Artifact Hub itself; a visitor's browser touches artifacthub.io only to fetch images, and the schema's `url` pattern admits `https://artifacthub.io/image/<uuid>` and nothing else. The pass is best-effort by construction: a dead Artifact Hub degrades to the previous snapshot's entries, then to absence, and can never fail a publish.
+The document carries `logos`: for every tool it names, the publisher asks Artifact Hub for the package's mark and, on a confident match (exact chart-name match, or an overlapping name on a package flagged official), ships the image URL keyed by the exact emitted string. The consumer does a plain key lookup and never queries Artifact Hub itself; a visitor's browser touches artifacthub.io only to fetch images, and the schema's `url` pattern admits `https://artifacthub.io/image/<uuid>` and nothing else. The pass is best-effort by construction: a dead Artifact Hub degrades to the previous snapshot's entries, then to absence, and can never fail a publish.
 
 ## Operating it
 
@@ -55,4 +55,10 @@ curl -s https://raw.githubusercontent.com/PragalvaXFREZ/devata-snapshot/main/sna
 check-jsonschema --schemafile /tmp/schema.json /tmp/broken.json
 ```
 
-The CronJob was born with `suspend: true` and the Application with automation off. Both flipped in a follow-up PR after the first manual run was verified end to end against the safety model: render checked against the live cluster, gate proven to reject a stray field, leak grep clean, push confirmed at the raw URL. One known hardening item remains: the pod runs as root (Alpine's default) and the showcase namespace warns against the restricted PodSecurity profile; moving to runAsNonRoot is a future image change.
+## First deployment
+
+Stage a new deployment with the CronJob suspended and Argo CD automation disabled. Before enabling either, run the checks above against the live cluster, prove that the schema rejects a stray field, inspect the rendered document for internal addresses and node names, and confirm the pushed file at the raw URL.
+
+## Known limitation
+
+The toolbox image runs as root because it inherits Alpine's default user. The showcase namespace permits this under its baseline PodSecurity policy; the image does not satisfy the restricted profile without a non-root user and matching filesystem permissions.
