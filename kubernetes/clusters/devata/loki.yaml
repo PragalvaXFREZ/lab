@@ -15,7 +15,7 @@ spec:
         valueFiles:
           - $values/kubernetes/infra/observability/loki/values.yaml
     - repoURL: https://github.com/PragalvaXFREZ/lab.git
-      targetRevision: main
+      targetRevision: feat/longhorn-velero
       ref: values
   destination:
     server: https://kubernetes.default.svc

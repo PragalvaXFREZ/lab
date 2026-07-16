@@ -15,12 +15,15 @@ spec:
         valueFiles:
           - $values/kubernetes/infra/storage/longhorn/values.yaml
     - repoURL: https://github.com/PragalvaXFREZ/lab.git
-      targetRevision: main
+      targetRevision: feat/longhorn-velero
       ref: values
   destination:
     server: https://kubernetes.default.svc
     namespace: longhorn-system
   syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
     managedNamespaceMetadata:
       labels:
         pod-security.kubernetes.io/audit: privileged

@@ -15,10 +15,10 @@ spec:
         valueFiles:
           - $values/kubernetes/infra/observability/kps/values.yaml
     - repoURL: https://github.com/PragalvaXFREZ/lab.git
-      targetRevision: main
+      targetRevision: feat/longhorn-velero
       ref: values
     - repoURL: https://github.com/PragalvaXFREZ/lab.git
-      targetRevision: main
+      targetRevision: feat/longhorn-velero
       path: kubernetes/infra/observability/kps/secrets
   destination:
     server: https://kubernetes.default.svc
