@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: local-path-config
+  namespace: argocd
+  labels:
+    devata.pragalva.me/tier: platform
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/PragalvaXFREZ/lab.git
+    targetRevision: main
+    path: kubernetes/infra/storage/local-path
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: local-path-storage
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true

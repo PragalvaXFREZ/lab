@@ -1,5 +1,5 @@
 # storage
 
-Persistent storage for the cluster. Storage classes to begin with, and durable replicated volumes with backup later: Longhorn for the volumes and Velero for the backups, with their Talos system extensions declared in `talos/schematics/`.
+Persistent storage for the cluster. Longhorn remains the target for replicated volumes, with Velero providing backups later and the required Talos extensions declared in `talos/schematics/`.
 
-Parked until a volume is actually worth protecting, then lands under its own follow up issue.
+The OptiPlex migration uses an interim local-path mapping under `local-path/`. It keeps the existing observability claims on the node's persistent XFS volume at `/var/mnt/longhorn` instead of Talos's ephemeral `/opt`. This mapping does not provide replication or replace the planned Longhorn installation.
