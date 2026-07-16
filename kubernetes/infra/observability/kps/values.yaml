@@ -78,6 +78,7 @@ kubeScheduler:
     insecureSkipVerify: true
 prometheus:
   prometheusSpec:
+    replicas: 0
     initContainers:
     - command:
       - sh
