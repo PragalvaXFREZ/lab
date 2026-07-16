@@ -1,0 +1,24 @@
+persistence:
+  createStorageClass: true
+  defaultClass: false
+  defaultClassReplicaCount: 2
+  dataEngine: v1
+
+preUpgradeChecker:
+  jobEnabled: false
+
+csi:
+  attacherReplicaCount: 2
+  provisionerReplicaCount: 2
+  resizerReplicaCount: 2
+  snapshotterReplicaCount: 2
+
+defaultSettings:
+  createDefaultDiskLabeledNodes: true
+  defaultDataPath: /var/mnt/longhorn
+  defaultReplicaCount: '{"v1":"2","v2":"2"}'
+  v1DataEngine: true
+  v2DataEngine: false
+
+longhornUI:
+  replicas: 1

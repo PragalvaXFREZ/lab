@@ -1,0 +1,15 @@
+# Talos Image Factory schematic for the Acer Nitro 5 worker.
+# It preserves the LTS NVIDIA experiment and adds the tools required by
+# Longhorn V1 on Talos.
+customization:
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/nonfree-kmod-nvidia-lts
+      - siderolabs/nvidia-container-toolkit-lts
+      - siderolabs/iscsi-tools
+      - siderolabs/util-linux-tools
+
+# Derived schematic ID:
+# efa8c0e85481aa31a86731108885dd6ea5ef0f099facfd928a6f738f1a242610
+# Mirrored installer:
+# 192.168.1.13:5000/installer/efa8c0e85481aa31a86731108885dd6ea5ef0f099facfd928a6f738f1a242610:v1.11.5
