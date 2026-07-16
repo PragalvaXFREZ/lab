@@ -44,6 +44,8 @@ singleBinary:
     kubernetes.io/hostname: talos-opt-7040
   persistence:
     enabled: true
+    whenDeleted: Retain
+    whenScaled: Retain
     size: 5Gi
     storageClass: local-path
   replicas: 1
