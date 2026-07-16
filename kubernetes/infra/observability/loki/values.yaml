@@ -47,7 +47,7 @@ singleBinary:
     whenDeleted: Retain
     whenScaled: Retain
     size: 5Gi
-    storageClass: longhorn
+    storageClass: local-path
   replicas: 1
   resources:
     limits:
