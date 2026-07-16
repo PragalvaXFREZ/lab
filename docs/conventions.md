@@ -16,7 +16,7 @@ These are the rules this repository lives by. They are written down so they outl
 
 - **One concern per directory, graduate rather than duplicate.** A manifest that proves out in the sandbox and becomes real infrastructure moves into `kubernetes/infra/`, it is not copied. A component reused across clusters moves up into a shared path.
 
-- **The README is the front door.** Anyone landing on the repo should understand the architecture and where to look from the top level README alone.
+- **The README is the front door.** Keep the top-level README limited to purpose, architecture, trust boundaries, repository navigation, validation, and links to evidence. Do not put dated progress, status summaries, next steps, or session history there.
 
 ## The GitOps boundary
 
@@ -26,20 +26,30 @@ There is one line that the rest of the structure protects: the reconciler manage
 - `kubernetes/` is the cluster layer. It is the only path the reconciler watches, and everything in it is authoritative.
 - `lab-experiments/` is outside both. Nothing reconciles it, so nothing fights you when you break it.
 
-## How the structure absorbs new work
+## Documentation boundaries
 
-The layout is meant to grow by addition, not by reshuffling. Each planned workstream already has a home:
+- The root README orients a first-time reader and exposes the stable operating contract.
+- Component READMEs explain responsibility, inputs, safety boundaries, operation, verification, rollback, and known limitations in present tense.
+- Architecture decision records explain why a durable choice was made and are superseded rather than rewritten.
+- GitHub issues carry work queues and acceptance criteria. Git and pull requests carry change history.
+- Runtime values belong in generated snapshots, badges, and status surfaces. Do not copy them into prose that must be remembered during the next change.
+- Session notes, chronological progress, and private planning stay outside this repository.
 
-- GitOps backbone goes into `kubernetes/bootstrap/` and `kubernetes/clusters/devata/`.
-- Secrets management is a controller in `kubernetes/infra/controllers/`, with encrypted secrets beside each app.
-- Ingress and TLS are a gateway in `kubernetes/infra/networking/` plus cert-manager in `controllers/`.
-- The outbound tunnel is `cloudflared` in `kubernetes/infra/ingress/`.
-- The showcase publisher is an app in `kubernetes/apps/showcase/`.
-- Storage durability is longhorn and velero in `kubernetes/infra/storage/`, with their Talos extensions in `talos/schematics/`.
-- A second cluster is a new folder under `kubernetes/clusters/` beside `devata`, reusing the same `infra/` and `apps/`.
-- New workloads are new folders under `kubernetes/apps/`.
+When a change invalidates a public claim, update or remove that claim in the same pull request.
 
-The test the structure has to pass: none of that requires moving an existing directory.
+## Directory ownership
+
+The layout grows by addition rather than reshuffling. Work belongs to the directory that owns its lifecycle:
+
+- GitOps bootstrap belongs in `kubernetes/bootstrap/`; cluster composition belongs in `kubernetes/clusters/devata/`.
+- Cluster-wide operators belong in `kubernetes/infra/controllers/`; encrypted workload credentials stay beside their consumer.
+- Cluster networking and gateways belong in `kubernetes/infra/networking/`; outbound exposure components belong in `kubernetes/infra/ingress/`.
+- Public evidence produced by the cluster belongs in `kubernetes/apps/showcase/`.
+- Storage controllers and classes belong in `kubernetes/infra/storage/`; required Talos extensions belong in `talos/schematics/`.
+- Another cluster gets its own folder under `kubernetes/clusters/`, reusing shared platform and workload definitions where their contracts match.
+- Workloads get their own folders under `kubernetes/apps/`.
+
+The structure passes when new work has one obvious owner and does not require moving unrelated directories.
 
 ## Decisions
 
