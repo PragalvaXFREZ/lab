@@ -78,7 +78,6 @@ kubeScheduler:
     insecureSkipVerify: true
 prometheus:
   prometheusSpec:
-    replicas: 0
     initContainers:
     - command:
       - sh
@@ -116,7 +115,7 @@ prometheus:
           resources:
             requests:
               storage: 5Gi
-          storageClassName: longhorn
+          storageClassName: local-path
 prometheus-node-exporter:
   resources:
     limits:
