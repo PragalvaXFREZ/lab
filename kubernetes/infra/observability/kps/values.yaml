@@ -1,6 +1,7 @@
 alertmanager:
   enabled: false
 grafana:
+  replicas: 0
   admin:
     existingSecret: grafana-admin
   dashboardProviders:
