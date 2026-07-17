@@ -25,6 +25,16 @@ metadata:
     backup.velero.io/backup-volumes: data
 spec:
   restartPolicy: Always
+  nodeSelector:
+    kubernetes.io/hostname: talos-opt-7040
+  securityContext:
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    runAsGroup: 1000
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
   containers:
     - name: reader
       image: alpine:3.22
@@ -38,6 +48,11 @@ spec:
           memory: 8Mi
         limits:
           memory: 32Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
       volumeMounts:
         - name: data
           mountPath: /data

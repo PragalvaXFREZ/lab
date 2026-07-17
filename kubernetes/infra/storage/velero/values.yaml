@@ -36,6 +36,9 @@ backupsEnabled: true
 snapshotsEnabled: false
 deployNodeAgent: true
 
+nodeSelector:
+  kubernetes.io/hostname: talos-opt-7040
+
 resources:
   requests:
     cpu: 50m
