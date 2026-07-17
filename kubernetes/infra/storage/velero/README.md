@@ -6,6 +6,8 @@ The bucket has a 1 GB operating ceiling. No recurring `Schedule` resource is dec
 
 The node agent uses Kopia to read selected mounted volumes. Native volume snapshots are disabled because R2 is the durable target and Longhorn snapshots remain on the same cluster failure domain.
 
+Argo CD renders and applies the chart CRDs directly with Server-Side Apply. The chart's separate CRD upgrade hook is disabled because it duplicates that ownership path and depends on a short-lived kubectl helper image.
+
 ## Files
 
 - `values.yaml` configures the R2 backup location, AWS-compatible plugin, Kopia node agent, and resource limits.

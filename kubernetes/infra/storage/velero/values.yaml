@@ -6,6 +6,8 @@ initContainers:
       - mountPath: /target
         name: plugins
 
+upgradeCRDs: false
+
 configuration:
   backupStorageLocation:
     - name: default
