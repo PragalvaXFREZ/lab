@@ -1,6 +1,7 @@
 alertmanager:
   enabled: false
 grafana:
+  replicas: 1
   admin:
     existingSecret: grafana-admin
   dashboardProviders:
@@ -25,8 +26,7 @@ grafana:
     kubernetes.io/hostname: talos-opt-7040
   persistence:
     enabled: true
-    size: 2Gi
-    storageClassName: local-path
+    existingClaim: kps-grafana-longhorn
   resources:
     limits:
       memory: 256Mi
@@ -115,7 +115,7 @@ prometheus:
           resources:
             requests:
               storage: 5Gi
-          storageClassName: local-path
+          storageClassName: longhorn
 prometheus-node-exporter:
   resources:
     limits:

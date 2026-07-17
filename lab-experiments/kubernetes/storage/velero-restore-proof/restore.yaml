@@ -1,0 +1,10 @@
+apiVersion: velero.io/v1
+kind: Restore
+metadata:
+  name: velero-cap-proof-restore
+  namespace: velero
+spec:
+  backupName: velero-cap-proof
+  namespaceMapping:
+    velero-cap-proof: velero-cap-proof-restored
+  restorePVs: true

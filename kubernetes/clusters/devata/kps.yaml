@@ -20,6 +20,9 @@ spec:
     - repoURL: https://github.com/PragalvaXFREZ/lab.git
       targetRevision: main
       path: kubernetes/infra/observability/kps/secrets
+    - repoURL: https://github.com/PragalvaXFREZ/lab.git
+      targetRevision: main
+      path: kubernetes/infra/observability/kps/resources
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring

@@ -1,0 +1,57 @@
+initContainers:
+  - name: velero-plugin-for-aws
+    image: velero/velero-plugin-for-aws:v1.13.2
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
+      - mountPath: /target
+        name: plugins
+
+upgradeCRDs: false
+
+configuration:
+  backupStorageLocation:
+    - name: default
+      provider: aws
+      bucket: devata-velero-backups
+      prefix: devata
+      default: true
+      accessMode: ReadWrite
+      credential:
+        name: cloud-credentials
+        key: cloud
+      config:
+        region: auto
+        s3ForcePathStyle: "true"
+        s3Url: https://daaaf55bcbf0ede4b982c1cb45a033a9.r2.cloudflarestorage.com
+        checksumAlgorithm: ""
+  defaultVolumesToFsBackup: false
+  defaultRepoMaintainFrequency: 1h
+  uploaderType: kopia
+
+credentials:
+  useSecret: true
+  existingSecret: cloud-credentials
+
+backupsEnabled: true
+snapshotsEnabled: false
+deployNodeAgent: true
+
+nodeSelector:
+  kubernetes.io/hostname: talos-opt-7040
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
+
+nodeAgent:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 512Mi
+
+schedules: {}
