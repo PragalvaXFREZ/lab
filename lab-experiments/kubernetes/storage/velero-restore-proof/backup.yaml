@@ -1,0 +1,12 @@
+apiVersion: velero.io/v1
+kind: Backup
+metadata:
+  name: velero-cap-proof
+  namespace: velero
+spec:
+  defaultVolumesToFsBackup: false
+  includedNamespaces:
+    - velero-cap-proof
+  snapshotVolumes: false
+  storageLocation: default
+  ttl: 168h0m0s

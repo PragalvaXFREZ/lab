@@ -18,7 +18,7 @@ Cordon and drain the worker that hosts the proof pod, reboot it with `talosctl`,
 
 ## Node-failure test
 
-Stop the Talos `cri` service on the hosting worker to simulate loss of its workload runtime while keeping Talos API access for recovery. Move the proof Deployment to the other worker, force-delete the unreachable old pod only after the node is NotReady, and verify the sentinel from the replacement pod. Start `cri`, wait for the node and both Longhorn replicas to recover, then verify the checksum again.
+Force-reboot the hosting worker without waiting for graceful teardown, move the proof Deployment to the other worker, and force-delete the unreachable old pod only after the node is NotReady. Verify the sentinel from the replacement pod while the volume is degraded, then wait for the failed node and both Longhorn replicas to recover before checking the checksum again.
 
 This test exercises a worker-runtime failure. It is not evidence of a physical power-loss or network-partition test.
 
