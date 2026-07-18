@@ -4,6 +4,9 @@ grafana:
   replicas: 1
   admin:
     existingSecret: grafana-admin
+  grafana.ini:
+    dashboards:
+      default_home_dashboard_path: /tmp/dashboards/Devata/devata-overview.json
   dashboardProviders:
     dashboardproviders.yaml:
       apiVersion: 1
@@ -33,6 +36,12 @@ grafana:
     requests:
       cpu: 50m
       memory: 128Mi
+  sidecar:
+    dashboards:
+      folderAnnotation: grafana_folder
+      provider:
+        allowUiUpdates: false
+        foldersFromFilesStructure: true
   service:
     type: LoadBalancer
 kube-state-metrics:
