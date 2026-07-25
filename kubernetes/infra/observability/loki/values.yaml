@@ -14,6 +14,8 @@ loki:
     retention_enabled: true
   ingester:
     chunk_encoding: snappy
+    wal:
+      replay_memory_ceiling: 256MB
   limits_config:
     reject_old_samples: true
     reject_old_samples_max_age: 168h
@@ -35,6 +37,9 @@ lokiCanary:
   enabled: false
 minio:
   enabled: false
+monitoring:
+  serviceMonitor:
+    enabled: true
 read:
   replicas: 0
 resultsCache:
@@ -51,10 +56,10 @@ singleBinary:
   replicas: 1
   resources:
     limits:
-      memory: 384Mi
+      memory: 1Gi
     requests:
       cpu: 50m
-      memory: 192Mi
+      memory: 512Mi
 test:
   enabled: false
 write:
