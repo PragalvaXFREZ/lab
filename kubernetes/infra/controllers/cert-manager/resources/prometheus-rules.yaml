@@ -1,0 +1,43 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cert-manager-certificate-health
+  namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  groups:
+    - name: cert-manager.certificates
+      rules:
+        - alert: CertManagerCertificateNotReady
+          expr: >-
+            max by (namespace, name)
+            (certmanager_certificate_ready_status{condition=~"False|Unknown"} == 1) > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Certificate {{ $labels.namespace }}/{{ $labels.name }} is not ready
+            description: cert-manager has reported the certificate as False or Unknown for 15 minutes.
+        - alert: CertManagerCertificateRenewalOverdue
+          expr: >-
+            certmanager_certificate_renewal_timestamp_seconds > 0
+            and
+            (time() - certmanager_certificate_renewal_timestamp_seconds) > 3600
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Certificate {{ $labels.namespace }}/{{ $labels.name }} renewal is overdue
+            description: The scheduled renewal time passed more than one hour ago without a new renewal time.
+        - alert: CertManagerCertificateExpiringSoon
+          expr: >-
+            certmanager_certificate_expiration_timestamp_seconds > 0
+            and
+            (certmanager_certificate_expiration_timestamp_seconds - time()) < 1209600
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Certificate {{ $labels.namespace }}/{{ $labels.name }} expires within 14 days
+            description: Certificate expiration is approaching and automatic renewal has not replaced it.

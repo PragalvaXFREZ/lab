@@ -1,0 +1,56 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: redirect-http-to-https
+  namespace: gateway-system
+spec:
+  parentRefs:
+    - name: lan-gateway
+      sectionName: http
+  hostnames:
+    - grafana.lab.pragalva.me
+    - hubble.lab.pragalva.me
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: grafana
+  namespace: gateway-system
+spec:
+  parentRefs:
+    - name: lan-gateway
+      sectionName: https
+  hostnames:
+    - grafana.lab.pragalva.me
+  rules:
+    - backendRefs:
+        - group: ""
+          kind: Service
+          name: kps-grafana
+          namespace: monitoring
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: hubble
+  namespace: gateway-system
+spec:
+  parentRefs:
+    - name: lan-gateway
+      sectionName: https
+  hostnames:
+    - hubble.lab.pragalva.me
+  rules:
+    - backendRefs:
+        - group: ""
+          kind: Service
+          name: hubble-ui
+          namespace: kube-system
+          port: 80
