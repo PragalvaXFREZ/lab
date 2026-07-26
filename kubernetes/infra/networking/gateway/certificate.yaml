@@ -1,0 +1,22 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: lan-services-tls
+  namespace: gateway-system
+spec:
+  secretName: lan-services-tls
+  renewBeforePercentage: 33
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: letsencrypt-production
+  dnsNames:
+    - grafana.lab.pragalva.me
+    - hubble.lab.pragalva.me
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  usages:
+    - digital signature
+    - server auth
