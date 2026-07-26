@@ -7,8 +7,8 @@ spec:
   gatewayClassName: cilium
   infrastructure:
     annotations:
-      metallb.io/address-pool: lan-pool
-      metallb.io/loadBalancerIPs: 192.168.1.244
+      metallb.universe.tf/address-pool: lan-pool
+      metallb.universe.tf/loadBalancerIPs: 192.168.1.244
   listeners:
     - name: http
       protocol: HTTP
