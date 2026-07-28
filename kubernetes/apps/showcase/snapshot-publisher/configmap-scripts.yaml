@@ -23,6 +23,40 @@ data:
 
     NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
+    # Hubble aggregate traffic, read through the Prometheus series already
+    # scraped for the Devata overview dashboard. Only rates and timestamps are
+    # exported. Individual flows, identities, addresses, ports, and labels
+    # never enter the public document. Telemetry is optional so a Prometheus
+    # outage cannot block the core snapshot.
+    PROMETHEUS_URL="http://kps-kube-prometheus-stack-prometheus.monitoring.svc:9090/api/v1/query_range"
+    END="$(date -u +%s)"
+    START="$((END - 21600))"
+    FLOW_QUERY="$(jq -rn --arg q 'sum(rate(hubble_flows_processed_total[5m]))' '$q | @uri')"
+    DROP_QUERY="$(jq -rn --arg q 'sum(rate(hubble_drop_total[5m]))' '$q | @uri')"
+    if curl -fsS -m 15 "${PROMETHEUS_URL}?query=${FLOW_QUERY}&start=${START}&end=${END}&step=900" > /tmp/hubble-flow.json \
+      && curl -fsS -m 15 "${PROMETHEUS_URL}?query=${DROP_QUERY}&start=${START}&end=${END}&step=900" > /tmp/hubble-drop.json; then
+      jq -n --slurpfile flow /tmp/hubble-flow.json --slurpfile drops /tmp/hubble-drop.json '
+        ($drops[0].data.result[0].values // []
+          | map({key: (.[0] | tostring), value: (.[1] | tonumber)})
+          | from_entries) as $dropByTime
+        | {
+            source: "hubble",
+            windowHours: 6,
+            sampleIntervalMinutes: 15,
+            samples: [
+              $flow[0].data.result[0].values[]?
+              | {
+                  timestamp: (.[0] | todateiso8601),
+                  flowsPerSecond: (((.[1] | tonumber) * 1000) | round / 1000),
+                  dropsPerSecond: (((($dropByTime[(.[0] | tostring)] // 0) * 1000) | round) / 1000)
+                }
+            ]
+          }
+      ' > /tmp/traffic.json || printf '%s\n' '{"samples":[]}' > /tmp/traffic.json
+    else
+      printf '%s\n' '{"samples":[]}' > /tmp/traffic.json
+    fi
+
     # Build the public document by selecting safe fields into a new object.
     # This is an allowlist: a field that is not named here does not exist in the
     # output, so a new field Kubernetes adds next year cannot leak by default.
@@ -38,7 +72,8 @@ data:
       --slurpfile deployments /tmp/deployments.json \
       --slurpfile daemonsets /tmp/daemonsets.json \
       --slurpfile statefulsets /tmp/statefulsets.json \
-      --slurpfile pods /tmp/pods.json '
+      --slurpfile pods /tmp/pods.json \
+      --slurpfile traffic /tmp/traffic.json '
       def iscp($n): $n.metadata.labels | has("node-role.kubernetes.io/control-plane");
       def ready($n): ([$n.status.conditions[] | select(.type == "Ready") | .status] | first) == "True";
       def gib($q): ($q | rtrimstr("Ki") | tonumber / 1048576);
@@ -53,11 +88,11 @@ data:
       ($svc[0].items) as $S |
       ($pvc[0].items) as $P |
       {
-        schemaVersion: "1.3.0",
+        schemaVersion: "1.4.0",
         generatedAt: $now,
         generator: {
           name: "devata-snapshot-publisher",
-          version: "0.3.0",
+          version: "0.4.0",
           method: "read-only Kubernetes API via a scoped ServiceAccount"
         },
         freshness: { clusterPowered: true, maxAgeHours: 24 },
@@ -133,7 +168,8 @@ data:
           statefulsets: ($statefulsets[0].items | length),
           pods: ($pods[0].items | length)
         }
-      }' > /tmp/snapshot.json
+      }
+      + (if ($traffic[0].samples | length) > 1 then {traffic: $traffic[0]} else {} end)' > /tmp/snapshot.json
 
     # Clone before the logo pass: the previous published snapshot doubles as the
     # fallback cache when Artifact Hub is unreachable. The push credential is a
