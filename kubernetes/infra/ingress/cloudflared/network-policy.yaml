@@ -33,10 +33,6 @@ spec:
         - k8sService:
             serviceName: cilium-gateway-lan-gateway
             namespace: gateway-system
-      toPorts:
-        - ports:
-            - port: "443"
-              protocol: TCP
     - toEntities:
         - world
       toPorts:
