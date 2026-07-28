@@ -23,9 +23,10 @@ Cloudflare.
 
 - The tunnel token is committed only as a SealedSecret and mounted as a read-only file.
 - The pods do not receive Kubernetes API credentials and run as a non-root user with a read-only filesystem.
-- Egress permits cluster DNS, the named Cilium Gateway Service, and Cloudflare on TCP or UDP `7844` with TCP
-  `443` for management and fallback. The Gateway Service rule intentionally omits `toPorts` because Cilium
-  evaluates L4 policy after Service translation and represents the listener with a synthetic target port.
+- Egress permits cluster DNS, Cilium's `ingress` identity, the Grafana backend on TCP `3000`, the Hubble UI
+  backend on TCP `8081`, and Cloudflare on TCP or UDP `7844` with TCP `443` for management and fallback.
+  Cilium Gateway hairpin traffic crosses the `ingress` identity before reaching a routed backend, so the
+  policy allows those identities directly instead of relying on the selectorless Gateway Service.
 - Prometheus is the only permitted inbound consumer of the connector metrics endpoint.
 - Cloudflare route configuration remains remotely managed until the external boundary is imported into
   OpenTofu. The dashboard configuration is therefore an explicit temporary manual dependency.
