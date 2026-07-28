@@ -29,10 +29,24 @@ spec:
           rules:
             dns:
               - matchPattern: "*"
-    - toServices:
-        - k8sService:
-            serviceName: cilium-gateway-lan-gateway
-            namespace: gateway-system
+    - toEntities:
+        - ingress
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+            k8s:app.kubernetes.io/name: grafana
+      toPorts:
+        - ports:
+            - port: "3000"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:app.kubernetes.io/name: hubble-ui
+      toPorts:
+        - ports:
+            - port: "8081"
+              protocol: TCP
     - toEntities:
         - world
       toPorts:
