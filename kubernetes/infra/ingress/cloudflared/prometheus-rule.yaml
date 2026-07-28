@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cloudflared
+  namespace: cloudflare-tunnel
+  labels:
+    app.kubernetes.io/name: cloudflared
+spec:
+  groups:
+    - name: cloudflared
+      rules:
+        - alert: CloudflaredReplicaUnavailable
+          expr: kube_deployment_status_replicas_available{namespace="cloudflare-tunnel", deployment="cloudflared"} < 2
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: A cloudflared connector replica is unavailable
+            description: The tunnel has fewer than two available connector replicas for ten minutes.
+        - alert: CloudflareTunnelDisconnected
+          expr: sum(cloudflared_tunnel_ha_connections{namespace="cloudflare-tunnel"}) < 1 or absent(cloudflared_tunnel_ha_connections{namespace="cloudflare-tunnel"})
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: The Cloudflare Tunnel has no active connections
+            description: No active cloudflared connection has been observed for five minutes.

@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cloudflare-tunnel
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  labels:
+    devata.pragalva.me/tier: platform
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/PragalvaXFREZ/lab.git
+    targetRevision: main
+    path: kubernetes/infra/ingress/cloudflared
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cloudflare-tunnel
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
