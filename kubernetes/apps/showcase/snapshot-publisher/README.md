@@ -6,6 +6,8 @@ Push, not pull: CGNAT means nothing outside can reach in, and home infrastructur
 
 Beside the snapshot, every run maintains `heartbeat.json`: a rolling window of the last 336 run timestamps (14 days at the hourly cadence). It exists because the portfolio page needs to read the ledger, and walking the commit log through the GitHub REST API rate-limits anonymous browsers at 60 requests an hour per address; a raw file rides the CDN with no such ceiling. The file carries nothing read from the cluster, only the job's own clock, so it sits outside the allowlist and the schema gate by construction. The commit history stays the audit trail: every beat in the file has a matching commit, and anyone skeptical can diff the two.
 
+The optional `traffic` block carries six hours of aggregate Hubble flow and drop rates. The publisher reads the same Prometheus series used by the Devata overview dashboard and emits 15-minute samples. Individual flows, workload identities, addresses, ports, and metric labels remain inside the cluster. If Prometheus is unavailable, the publisher omits this block and still publishes the core snapshot.
+
 ## The safety model
 
 1. **Read-only on the cluster side.** The ClusterRole in `rbac.yaml` is the complete list of what the publisher may see: get and list on nodes, namespaces, services, persistentvolumeclaims, pods, the apps workload kinds, and Argo Applications. No secrets, no writes, no watch.
