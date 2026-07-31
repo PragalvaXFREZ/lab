@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hubble-traffic-streamer
+  namespace: showcase
+  labels:
+    app.kubernetes.io/name: hubble-traffic-streamer
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hubble-traffic-streamer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hubble-traffic-streamer
+    spec:
+      serviceAccountName: hubble-traffic-streamer
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 10
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: stream
+          image: ghcr.io/pragalvaxfrez/hubble-traffic-streamer:0.1.0
+          env:
+            - name: PROMETHEUS_URL
+              value: http://kps-kube-prometheus-stack-prometheus.monitoring.svc:9090/api/v1/query
+            - name: RELAY_URL
+              value: https://telemetry.pragalva.me/v1/samples
+            - name: INTERVAL
+              value: 5s
+            - name: PRODUCER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hubble-traffic-producer
+                  key: token
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

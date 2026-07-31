@@ -21,7 +21,9 @@ jobs:
           curl -sSL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
             | sudo tar xz -C /usr/local/bin kubeconform
 
-      # values.yaml files are helm inputs, not manifests, so they are excluded.
+      # values.yaml files are Helm inputs, not manifests, so they are excluded.
+      # image/ and relay/ are workload source trees that Argo's directory
+      # sources do not recurse into; their own workflows validate them.
       # CRD kinds are skipped: the default schema registry has no schema for
       # CustomResourceDefinition itself. CRs are validated against the datree
       # CRD catalog (argoproj.io, metallb.io, bitnami.com, ...).
@@ -35,6 +37,7 @@ jobs:
             -ignore-filename-pattern '.*values\.yaml' \
             -ignore-filename-pattern '.*\.md' \
             -ignore-filename-pattern '.*\.pem' \
+            -ignore-filename-pattern '.*/(image|relay)/.*' \
             kubernetes/
 
   helm-template:

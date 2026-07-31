@@ -1,0 +1,104 @@
+name: Hubble traffic stream
+
+on:
+  pull_request:
+    paths:
+      - "kubernetes/apps/showcase/hubble-traffic-stream/**"
+      - "kubernetes/clusters/devata/hubble-traffic-stream.yaml"
+      - ".github/workflows/hubble-traffic-stream.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "kubernetes/apps/showcase/hubble-traffic-stream/**"
+      - ".github/workflows/hubble-traffic-stream.yaml"
+  workflow_dispatch: {}
+
+env:
+  IMAGE: ghcr.io/pragalvaxfrez/hubble-traffic-streamer
+  VERSION: 0.1.0
+  RELAY_DIR: kubernetes/apps/showcase/hubble-traffic-stream/relay
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  verify-producer:
+    name: verify producer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.5
+          cache-dependency-path: kubernetes/apps/showcase/hubble-traffic-stream/image/go.mod
+      - name: Test
+        working-directory: kubernetes/apps/showcase/hubble-traffic-stream/image
+        run: go test ./... && go vet ./...
+
+  verify-relay:
+    name: verify relay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ${{ env.RELAY_DIR }}/package-lock.json
+      - name: Install
+        working-directory: ${{ env.RELAY_DIR }}
+        run: npm ci
+      - name: Test and build
+        working-directory: ${{ env.RELAY_DIR }}
+        run: npm test && npm run check
+
+  publish-producer:
+    name: publish producer image
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: [verify-producer, verify-relay]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: kubernetes/apps/showcase/hubble-traffic-stream/image
+          push: true
+          tags: ${{ env.IMAGE }}:${{ env.VERSION }}
+
+  deploy-relay:
+    name: deploy relay
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: [verify-producer, verify-relay]
+    runs-on: ubuntu-latest
+    environment: hubble-traffic-relay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ${{ env.RELAY_DIR }}/package-lock.json
+      - name: Install
+        working-directory: ${{ env.RELAY_DIR }}
+        run: npm ci
+      - name: Deploy Worker
+        working-directory: ${{ env.RELAY_DIR }}
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler deploy
+      - name: Install producer credential
+        working-directory: ${{ env.RELAY_DIR }}
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PRODUCER_TOKEN: ${{ secrets.HUBBLE_RELAY_PRODUCER_TOKEN }}
+        run: printf '%s' "$PRODUCER_TOKEN" | npx wrangler secret put PRODUCER_TOKEN
+      - name: Verify relay health
+        run: curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 3 https://telemetry.pragalva.me/health

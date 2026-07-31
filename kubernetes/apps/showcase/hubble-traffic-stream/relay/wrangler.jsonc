@@ -1,0 +1,33 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "devata-hubble-traffic-relay",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-31",
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "telemetry.pragalva.me",
+      "custom_domain": true
+    }
+  ],
+  "vars": {
+    "ALLOWED_ORIGIN": "https://pragalva.me"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "TRAFFIC_RELAY",
+        "class_name": "TrafficRelay"
+      }
+    ]
+  },
+  "exports": {
+    "TrafficRelay": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  },
+  "observability": {
+    "enabled": true
+  }
+}
