@@ -1,0 +1,22 @@
+# The first deployment stays manual until the relay, credential rejection,
+# payload allowlist, and outbound-only policy are verified end to end. Enable
+# prune and selfHeal only after that proof is recorded.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hubble-traffic-stream
+  namespace: argocd
+  labels:
+    devata.pragalva.me/tier: workload
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/PragalvaXFREZ/lab.git
+    targetRevision: main
+    path: kubernetes/apps/showcase/hubble-traffic-stream
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: showcase
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

@@ -18,7 +18,7 @@ Talos machine configuration inputs are version controlled here and applied out o
 
 ## Architecture
 
-The cluster sits on a home LAN behind CGNAT. Desired state comes in through Argo CD's outbound pull, while the public snapshot leaves through a publisher with read-only cluster access and write access to a separate data repository.
+The cluster sits on a home LAN behind CGNAT. Desired state comes in through Argo CD's outbound pull. Public evidence leaves through narrow outbound publishers: an hourly durable snapshot and a closed aggregate traffic stream.
 
 ```mermaid
 flowchart LR
@@ -28,10 +28,12 @@ flowchart LR
         devata["devata<br/>Talos + Kubernetes"]
     end
     snap["devata-snapshot<br/>observed state"]
+    relay["Cloudflare relay<br/>aggregate traffic only"]
     hub["pragalva.me/homelab"]
     lab -->|"Argo CD pulls"| devata
     operator -->|"applies talos/"| devata
     devata -->|"publisher pushes"| snap
+    devata -->|"aggregate rates push"| relay
     snap --> hub
 ```
 
@@ -50,7 +52,7 @@ The **sandbox** in [`lab-experiments/`](./lab-experiments) is where things get b
 - **`talos/` is reviewed but not reconciled.** It contains reusable patches, non-secret volume documents, and Image Factory schematics. Rendered machine configurations contain cluster trust material and remain outside Git.
 - **`kubernetes/` contains authoritative cluster state.** Bootstrap is applied once by hand; the root and child Applications reconcile cluster composition, platform components, and workloads with self-heal enabled. Pruning is enabled except where a component's recovery boundary requires otherwise, such as Argo CD managing its own installation.
 - **`lab-experiments/` is non-authoritative.** Nothing in the sandbox is referenced by the GitOps root or child Applications.
-- **Public state is allowlisted.** The snapshot publisher reads through a dedicated read-only ServiceAccount, builds a new document from approved fields, validates it against a closed schema, and can write only to `devata-snapshot`.
+- **Public state is allowlisted.** The snapshot publisher builds a validated document from approved fields and can write only to `devata-snapshot`. The traffic streamer has no inbound route or Kubernetes API token and can send only two aggregate Prometheus rates to its authenticated relay.
 
 ## Repository map
 

@@ -7,3 +7,4 @@ The format is lightweight, after [Michael Nygard's ADRs](https://cognitect.com/b
 ## Index
 
 - [0001 - Repository structure](./0001-repository-structure.md)
+- [0002 - Outbound aggregate traffic relay](./0002-outbound-aggregate-traffic-relay.md)
