@@ -29,6 +29,7 @@ spec:
               protocol: TCP
           rules:
             dns:
+              - matchName: kps-kube-prometheus-stack-prometheus.monitoring.svc.cluster.local
               - matchName: telemetry.pragalva.me
     - toFQDNs:
         - matchName: telemetry.pragalva.me

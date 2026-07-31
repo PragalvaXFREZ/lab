@@ -31,7 +31,7 @@ spec:
           image: ghcr.io/pragalvaxfrez/hubble-traffic-streamer:0.1.0
           env:
             - name: PROMETHEUS_URL
-              value: http://kps-kube-prometheus-stack-prometheus.monitoring.svc:9090/api/v1/query
+              value: http://kps-kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/query
             - name: RELAY_URL
               value: https://telemetry.pragalva.me/v1/samples
             - name: INTERVAL
