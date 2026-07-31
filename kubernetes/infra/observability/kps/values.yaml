@@ -7,6 +7,8 @@ grafana:
   grafana.ini:
     dashboards:
       default_home_dashboard_path: /tmp/dashboards/Devata/devata-overview.json
+    server:
+      enable_gzip: false
   dashboardProviders:
     dashboardproviders.yaml:
       apiVersion: 1
