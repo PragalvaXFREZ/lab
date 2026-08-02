@@ -1,4 +1,4 @@
-import { SELF } from "cloudflare:test";
+import { env, runInDurableObject, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 
 const endpoint = "https://telemetry.pragalva.me/v1/samples";
@@ -27,6 +27,27 @@ function publish(body: Record<string, unknown>, token = "test-producer-token"): 
 }
 
 describe("traffic relay", () => {
+  it("uses the timestamp primary-key index for retention queries", async () => {
+    const stub = env.TRAFFIC_RELAY.getByName("devata");
+    const plans = await runInDurableObject(stub, (_instance, state) => ({
+      cleanup: [
+        ...state.storage.sql.exec<{ detail: string }>(
+          "EXPLAIN QUERY PLAN DELETE FROM samples WHERE timestamp < ?",
+          timestamp(-6 * 60 * 60 * 1000),
+        ),
+      ],
+      history: [
+        ...state.storage.sql.exec<{ detail: string }>(
+          "EXPLAIN QUERY PLAN SELECT timestamp FROM samples WHERE timestamp >= ? ORDER BY timestamp ASC",
+          timestamp(-6 * 60 * 60 * 1000),
+        ),
+      ],
+    }));
+
+    expect(plans.cleanup.map(({ detail }) => detail).join(" ")).toContain("INDEX");
+    expect(plans.history.map(({ detail }) => detail).join(" ")).toContain("INDEX");
+  });
+
   it("rejects a bad credential", async () => {
     const response = await publish(sample(), "wrong-token");
     expect(response.status).toBe(401);

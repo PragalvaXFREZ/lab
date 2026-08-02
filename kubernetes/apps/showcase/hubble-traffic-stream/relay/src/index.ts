@@ -114,6 +114,10 @@ function publicSample(row: StoredSample): TrafficSample {
   };
 }
 
+function retentionCutoff(now: number): string {
+  return new Date(Math.floor((now - RETENTION_MS) / 1000) * 1000).toISOString().replace(".000Z", "Z");
+}
+
 export class TrafficRelay extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -175,7 +179,7 @@ export class TrafficRelay extends DurableObject<Env> {
       sample.flowsPerSecond,
       sample.dropsPerSecond,
     );
-    this.ctx.storage.sql.exec("DELETE FROM samples WHERE received_at < ?", now - RETENTION_MS);
+    this.ctx.storage.sql.exec("DELETE FROM samples WHERE timestamp < ?", retentionCutoff(now));
 
     const message = JSON.stringify({ type: "sample", sample });
     for (const socket of this.ctx.getWebSockets()) {
@@ -190,11 +194,11 @@ export class TrafficRelay extends DurableObject<Env> {
   }
 
   private history(): Response {
-    const cutoff = Date.now() - RETENTION_MS;
+    const cutoff = retentionCutoff(Date.now());
     const samples = [...this.ctx.storage.sql.exec<StoredSample>(`
       SELECT timestamp, flows_per_second, drops_per_second
       FROM samples
-      WHERE received_at >= ?
+      WHERE timestamp >= ?
       ORDER BY timestamp ASC
     `, cutoff)].map(publicSample);
     return json({ windowSeconds: RETENTION_MS / 1000, samples });
