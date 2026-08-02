@@ -14,7 +14,7 @@ Six consecutive collection or delivery failures terminate the process so Kuberne
 }
 ```
 
-The relay at `telemetry.pragalva.me` runs as a Cloudflare Worker backed by one SQLite Durable Object. It rejects unknown fields, stale or future timestamps, replays, writes faster than one every three seconds, and invalid bearer credentials. Accepted rows expire after six hours. Browsers read `/v1/history` and receive new samples through a hibernating WebSocket at `/v1/stream`.
+The relay at `telemetry.pragalva.me` runs as a Cloudflare Worker backed by one SQLite Durable Object. It rejects unknown fields, stale or future timestamps, replays, writes faster than one every three seconds, and invalid bearer credentials. Accepted rows expire six hours after their sample timestamp. Retention queries use the timestamp primary-key index so the five-second producer does not scan the full history on every write. Browsers read `/v1/history` and receive new samples through a hibernating WebSocket at `/v1/stream`.
 
 ## Trust boundary
 
