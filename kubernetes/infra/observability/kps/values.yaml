@@ -10,7 +10,7 @@ grafana:
     server:
       enable_gzip: false
     security:
-      csrf_trusted_origins: https://grafana.pragalva.me
+      csrf_trusted_origins: grafana.pragalva.me
   dashboardProviders:
     dashboardproviders.yaml:
       apiVersion: 1
