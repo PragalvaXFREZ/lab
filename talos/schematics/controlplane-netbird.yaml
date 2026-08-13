@@ -1,0 +1,12 @@
+# Talos Image Factory schematic for the bare-metal control plane.
+# Keep this image minimal: NetBird is the only extension required for
+# recovery access independent of Kubernetes and the home LAN.
+customization:
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/netbird
+
+# Derived schematic ID:
+# 7326f0cbca7a0e700ac1efa3f32e88df9ebe5010e6e842a8ed36fdc99ee98ead
+# Upstream installer:
+# factory.talos.dev/metal-installer/7326f0cbca7a0e700ac1efa3f32e88df9ebe5010e6e842a8ed36fdc99ee98ead:v1.12.11

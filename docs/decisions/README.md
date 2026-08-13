@@ -8,3 +8,4 @@ The format is lightweight, after [Michael Nygard's ADRs](https://cognitect.com/b
 
 - [0001 - Repository structure](./0001-repository-structure.md)
 - [0002 - Outbound aggregate traffic relay](./0002-outbound-aggregate-traffic-relay.md)
+- [0003 - Talos-native remote access](./0003-talos-native-remote-access.md)

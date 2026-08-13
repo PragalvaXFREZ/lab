@@ -7,3 +7,4 @@ This directory is version controlled here for history and review, but it is appl
 - [`machineconfigs/`](./machineconfigs) per node configuration.
 - [`patches/`](./patches) reusable config patches applied across nodes.
 - [`schematics/`](./schematics) Image Factory schematics: system extensions and kernel args baked into the boot image.
+- [`netbird/`](./netbird) Talos-native remote access enrollment, rollout, verification, and rollback.

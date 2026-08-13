@@ -7,7 +7,7 @@ machine:
     node.longhorn.io/create-default-disk: "true"
   install:
     disk: /dev/nvme0n1
-    image: 192.168.1.13:5000/installer/efa8c0e85481aa31a86731108885dd6ea5ef0f099facfd928a6f738f1a242610:v1.11.5
+    image: factory.talos.dev/metal-installer/6da7b4e2db4c4bdf73bf98fcdcb689b2abb21567c57082a8413742b96851ee33:v1.12.11
     wipe: false
   kubelet:
     extraMounts:

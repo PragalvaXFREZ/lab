@@ -1,0 +1,8 @@
+# Enrollment is node-specific and secret-bearing. Append this template to the
+# node's complete live configuration, preserve every auxiliary document, and
+# replace the placeholder with a one-off setup key only after a clean dry run.
+apiVersion: v1alpha1
+kind: ExtensionServiceConfig
+name: netbird
+environment:
+  - NB_SETUP_KEY=REPLACE_WITH_ONE_OFF_SETUP_KEY

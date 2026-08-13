@@ -1,0 +1,16 @@
+# Talos Image Factory schematic for the Acer Nitro 5 worker.
+# The NVIDIA LTS extension resolves to the branch supported by the selected
+# Talos release. NetBird runs below Kubernetes for independent recovery access.
+customization:
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/nonfree-kmod-nvidia-lts
+      - siderolabs/nvidia-container-toolkit-lts
+      - siderolabs/iscsi-tools
+      - siderolabs/netbird
+      - siderolabs/util-linux-tools
+
+# Derived schematic ID:
+# 6da7b4e2db4c4bdf73bf98fcdcb689b2abb21567c57082a8413742b96851ee33
+# Upstream installer:
+# factory.talos.dev/metal-installer/6da7b4e2db4c4bdf73bf98fcdcb689b2abb21567c57082a8413742b96851ee33:v1.12.11

@@ -10,4 +10,6 @@ The Dell OptiPlex 7040 worker uses three inputs:
 - `optiplex-7040.ephemeral.yaml` to cap Talos `/var` at 40 GiB during first provisioning.
 - `optiplex-7040.longhorn-volume.yaml` to create the XFS volume mounted at `/var/mnt/longhorn` from the remaining NVMe space.
 
-The Acer Nitro 5 worker uses `nitro-5.machine.patch.yaml` to preserve its hostname, networking, NVIDIA kernel configuration, and registry mirror while adding the Longhorn kubelet mount and storage-node label. Its `/var/mnt/longhorn` directory remains inside the existing Talos EPHEMERAL volume. No partition change is part of that patch.
+The Acer Nitro 5 worker uses `nitro-5.machine.patch.yaml` to preserve its hostname, networking, NVIDIA kernel configuration, and registry mirror while adding the Longhorn kubelet mount and storage-node label. Its `/var/mnt/longhorn` directory remains inside the existing Talos EPHEMERAL volume. No partition change is part of that patch. Its active Image Factory source is `../schematics/nvidia-lts-longhorn.yaml`; the older `nvidia-lts535*.yaml` files remain as historical experiment inputs.
+
+The worker installer references target Talos v1.12.11 because that is the first supported adjacent minor whose extension catalog contains NetBird. Kubernetes stays on its existing version during the Talos upgrade.
