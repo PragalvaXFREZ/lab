@@ -63,6 +63,7 @@ data:
             },
             "loadBalancer": { "type": "string", "description": "Load balancer in words only, no addresses, e.g. MetalLB (L2)." },
             "gitops": { "type": "string", "description": "Honest current state, e.g. manual Helm, or Argo CD app-of-apps. Evolves as the roadmap progresses." },
+            "remoteAccess": { "type": "string", "description": "Node-level remote access capability in words only, no peer names, addresses, routes, setup keys, or management endpoints, e.g. NetBird." },
             "ingress": { "type": "string", "description": "Words only, e.g. Gateway API CRDs installed, no controller wired." },
             "secretsManagement": { "type": "string", "description": "Words only, e.g. none yet, or Sealed Secrets." },
             "publicExposure": { "type": "string", "description": "Words only, e.g. none; behind CGNAT, outbound-only via Cloudflare Tunnel." }
