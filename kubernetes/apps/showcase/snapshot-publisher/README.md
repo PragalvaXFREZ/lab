@@ -32,6 +32,8 @@ The optional `traffic` block carries six hours of aggregate Hubble flow and drop
 
 The document carries `logos`: for every tool it names, the publisher asks Artifact Hub for the package's mark and, on a confident match (exact chart-name match, or an overlapping name on a package flagged official), ships the image URL keyed by the exact emitted string. The consumer does a plain key lookup and never queries Artifact Hub itself; a visitor's browser touches artifacthub.io only to fetch images, and the schema's `url` pattern admits `https://artifacthub.io/image/<uuid>` and nothing else. The pass is best-effort by construction: a dead Artifact Hub degrades to the previous snapshot's entries, then to absence, and can never fail a publish.
 
+`cluster.remoteAccess` reports the node-level remote access capability as a platform fact. NetBird is declared in the Talos image and machine configuration, so it is Git-backed but not an Argo CD Application. The field intentionally carries only the product name. Peer identity, addresses, routes, setup keys, and management endpoints remain outside the public contract.
+
 ## Operating it
 
 Fire a run without waiting for the clock:

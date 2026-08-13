@@ -88,11 +88,11 @@ data:
       ($svc[0].items) as $S |
       ($pvc[0].items) as $P |
       {
-        schemaVersion: "1.4.0",
+        schemaVersion: "1.5.0",
         generatedAt: $now,
         generator: {
           name: "devata-snapshot-publisher",
-          version: "0.4.0",
+          version: "0.5.0",
           method: "read-only Kubernetes API via a scoped ServiceAccount"
         },
         freshness: { clusterPowered: true, maxAgeHours: 24 },
@@ -104,6 +104,7 @@ data:
           cni: { name: "Cilium", notes: "eBPF dataplane, kube-proxy replacement, Hubble observability" },
           loadBalancer: "MetalLB (L2)",
           gitops: "Argo CD app-of-apps",
+          remoteAccess: "NetBird",
           ingress: "none yet; Gateway API planned",
           secretsManagement: "Sealed Secrets",
           publicExposure: "none; behind CGNAT, outbound-only"
@@ -193,7 +194,7 @@ data:
     jq -r '
       ([.cluster.distribution, "Kubernetes"]
        + [.cluster.cni.name // empty]
-       + [.cluster.loadBalancer // empty, .cluster.gitops // empty, .cluster.secretsManagement // empty]
+       + [.cluster.loadBalancer // empty, .cluster.gitops // empty, .cluster.remoteAccess // empty, .cluster.secretsManagement // empty]
        + [.apps[]?.name]
        + [.services[].name]
        + [.storage.defaultClass])
