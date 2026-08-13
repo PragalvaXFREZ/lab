@@ -15,6 +15,8 @@ Use NetBird Cloud for coordination and relay, with the NetBird client running as
 
 Run NetBird below Kubernetes. Do not deploy it as a DaemonSet, subnet-router pod, or separate LAN VM. Keep the Talos API on TCP 50000 and the Kubernetes API on TCP 6443 reachable only from the administrator workstation group.
 
+Because the NetBird interface makes Talos multihomed, restrict kubelet node-IP selection to the physical LAN. This prevents the overlay address from replacing the Kubernetes node `InternalIP` while preserving direct Talos API access through NetBird.
+
 Upgrade Talos from v1.11.5 to v1.12.11 before enabling NetBird because v1.11.5 has no NetBird extension artifact. Keep Kubernetes on v1.34.1 during this operating-system change.
 
 ## Consequences

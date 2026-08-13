@@ -1,0 +1,6 @@
+# Keep Kubernetes node traffic on the physical LAN after NetBird adds wt0.
+machine:
+  kubelet:
+    nodeIP:
+      validSubnets:
+        - 192.168.1.0/24

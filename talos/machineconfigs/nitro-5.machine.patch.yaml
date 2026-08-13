@@ -10,6 +10,9 @@ machine:
     image: factory.talos.dev/metal-installer/6da7b4e2db4c4bdf73bf98fcdcb689b2abb21567c57082a8413742b96851ee33:v1.12.11
     wipe: false
   kubelet:
+    nodeIP:
+      validSubnets:
+        - 192.168.1.0/24
     extraMounts:
       - destination: /var/mnt/longhorn
         type: bind
