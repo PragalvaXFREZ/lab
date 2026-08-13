@@ -1,14 +1,15 @@
-# Talos Image Factory schematic for storage-capable Intel bare-metal nodes.
-# The Longhorn extensions are installed now so adding replicated storage later
-# does not require another operating-system image transition on this node.
+# Talos Image Factory schematic for storage-capable Intel bare-metal workers.
+# NetBird runs as a Talos extension service so recovery access does not depend
+# on Kubernetes, the CNI, or another machine on the LAN.
 customization:
   systemExtensions:
     officialExtensions:
       - siderolabs/intel-ucode
       - siderolabs/iscsi-tools
+      - siderolabs/netbird
       - siderolabs/util-linux-tools
 
 # Derived schematic ID:
-# 36cd6536eaec8ba802be2d38974108359069cedba8857302f69792b26b87c010
+# f141fc2a08d5a459a80d871faa48d7dc92bc354e4faf6cdbafe1cc0fac717991
 # Upstream installer:
-# factory.talos.dev/metal-installer/36cd6536eaec8ba802be2d38974108359069cedba8857302f69792b26b87c010:v1.11.5
+# factory.talos.dev/metal-installer/f141fc2a08d5a459a80d871faa48d7dc92bc354e4faf6cdbafe1cc0fac717991:v1.12.11
