@@ -11,6 +11,8 @@ NetBird runs as a Talos extension service on each physical node. It is independe
 
 NetBird is not present in the Talos v1.11.5 extension catalog. Do not attempt to use the v1.12 extension with the current operating system and do not substitute a Kubernetes pod for recovery access.
 
+NetBird makes each enrolled node multihomed. Kubelet must be restricted to `192.168.1.0/24` before the extension starts, otherwise it can publish the NetBird address as the node `InternalIP` and break control-plane, Cilium, and CSI traffic. Keep NetBird in its default kernel mode.
+
 ## NetBird account preparation
 
 Complete these control-plane steps before changing a Talos node:
@@ -45,8 +47,23 @@ Use a `talosctl` client matching the running Talos v1.11.5 cluster to initiate t
 
 For each node, build a private temporary full configuration from the live main document, every required auxiliary document, and `../patches/netbird.extensionserviceconfig.example.yaml`. Confirm the intended node twice before continuing.
 
+First inspect the live machine configuration. If the constraint is missing, apply this patch once to pin kubelet to the physical LAN, then verify that Kubernetes still reports the node's LAN address:
+
 ```bash
 NETBIRD_NODE=192.168.1.10
+KUBERNETES_NODE=talos-opt-7040
+
+talosctl --nodes "$NETBIRD_NODE" patch machineconfig \
+  --patch @talos/patches/netbird.node-ip.patch.yaml \
+  --mode=no-reboot
+
+kubectl get node "$KUBERNETES_NODE" \
+  --output jsonpath='{.status.addresses[?(@.type=="InternalIP")].address}{"\n"}'
+```
+
+Do not continue unless the result is the node's `192.168.1.x` address. The committed worker machine patches carry the same constraint for future rendered configurations.
+
+```bash
 NETBIRD_CONFIG_PATH="$(mktemp)"
 NETBIRD_DRY_RUN_PATH="$(mktemp)"
 trap 'shred -u "$NETBIRD_CONFIG_PATH" "$NETBIRD_DRY_RUN_PATH"' EXIT
@@ -96,7 +113,7 @@ talosctl --nodes "$NETBIRD_NODE" apply-config \
 
 shred -u "$NETBIRD_CONFIG_PATH" "$NETBIRD_DRY_RUN_PATH"
 trap - EXIT
-unset NETBIRD_CONFIG_PATH NETBIRD_DRY_RUN_PATH NETBIRD_EXTRA_DOCUMENTS NETBIRD_NODE NETBIRD_SOURCE_PATH
+unset KUBERNETES_NODE NETBIRD_CONFIG_PATH NETBIRD_DRY_RUN_PATH NETBIRD_EXTRA_DOCUMENTS NETBIRD_NODE NETBIRD_SOURCE_PATH
 ```
 
 Perform the dry run while the placeholder is still present so no real key appears in the diff. Keep the output private because unchanged context can contain existing machine-configuration secrets. It must add only one `ExtensionServiceConfig` document named `netbird`. On the OptiPlex, the diff must not delete or alter `VolumeConfig/EPHEMERAL` or `UserVolumeConfig/longhorn`. Applying the NetBird document alone removes those auxiliary documents and is prohibited.
@@ -118,6 +135,7 @@ talosctl upgrade --nodes 192.168.1.10 \
 Do not continue until:
 
 - the node is Ready and reports Talos v1.12.11;
+- Kubernetes still reports `192.168.1.10` as the node `InternalIP`, and `kubectl logs` or `kubectl exec` can reach a pod on it;
 - `talosctl get extensions` lists `netbird`, `intel-ucode`, `iscsi-tools`, and `util-linux-tools`;
 - `talosctl service ext-netbird` is healthy and its logs contain no enrollment loop;
 - `u-longhorn` is mounted at `/var/mnt/longhorn`;
