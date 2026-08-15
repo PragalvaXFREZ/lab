@@ -6,3 +6,4 @@ kind: ExtensionServiceConfig
 name: netbird
 environment:
   - NB_SETUP_KEY=REPLACE_WITH_ONE_OFF_SETUP_KEY
+  - NB_CONFIG=/var/lib/netbird/config.json

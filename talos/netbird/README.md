@@ -4,12 +4,11 @@ NetBird runs as a Talos extension service on each physical node. It is independe
 
 ## Version contract
 
-- Current cluster: Talos v1.11.5 and Kubernetes v1.34.1.
-- Target operating system: Talos v1.12.11.
+- Current cluster: Talos v1.12.11 and Kubernetes v1.34.1.
 - Kubernetes remains v1.34.1 during this change.
 - NetBird extension: `ghcr.io/siderolabs/netbird:0.66.2`, selected by the Talos v1.12.11 extension catalog.
 
-NetBird is not present in the Talos v1.11.5 extension catalog. Do not attempt to use the v1.12 extension with the current operating system and do not substitute a Kubernetes pod for recovery access.
+The Talos v1.12.11 extension defaults `NB_CONFIG` to volatile `/var/run/netbird/config.json`. The enrollment document must override it with `/var/lib/netbird/config.json` so the peer identity survives a reboot. Talos v1.13 includes this upstream correction, but upgrading the operating system is not required for this configuration fix.
 
 NetBird makes each enrolled node multihomed. Kubelet must be restricted to `192.168.1.0/24` before the extension starts, otherwise it can publish the NetBird address as the node `InternalIP` and break control-plane, Cilium, and CSI traffic. Keep NetBird in its default kernel mode.
 
@@ -28,6 +27,8 @@ Complete these control-plane steps before changing a Talos node:
 6. Create a one-off setup key immediately before enrolling each node. Auto-assign the control-plane key to `devata-control-plane` and each worker key to `devata-workers`.
 
 Never place a setup key in Git, an issue, a pull request, shell history, or chat. A key is used for one node and is not reused.
+
+The setup key is bootstrap-only. A reboot must reuse the private peer identity from `/var/lib/netbird/config.json`; it must not attempt enrollment again.
 
 ## Image sources
 
