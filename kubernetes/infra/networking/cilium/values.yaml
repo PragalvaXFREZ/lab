@@ -2,6 +2,9 @@ cgroup:
   autoMount:
     enabled: false
   hostRoot: /sys/fs/cgroup
+# NetBird's wt0 interface is an overlay, not a cluster-facing device. Restrict
+# Cilium to the physical NICs so wt0 cannot lower the pod network MTU.
+devices: "enp+"
 hubble:
   enabled: true
   metrics:
