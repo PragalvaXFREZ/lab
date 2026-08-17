@@ -76,7 +76,15 @@ data:
       --slurpfile traffic /tmp/traffic.json '
       def iscp($n): $n.metadata.labels | has("node-role.kubernetes.io/control-plane");
       def ready($n): ([$n.status.conditions[] | select(.type == "Ready") | .status] | first) == "True";
-      def gib($q): ($q | rtrimstr("Ki") | tonumber / 1048576);
+      # Kubernetes quantities use the largest exact binary suffix, so the same
+      # node capacity may be serialized as Ki, Mi, or Gi after a reboot.
+      def gib($q):
+        if ($q | endswith("Ki")) then ($q | rtrimstr("Ki") | tonumber / 1048576)
+        elif ($q | endswith("Mi")) then ($q | rtrimstr("Mi") | tonumber / 1024)
+        elif ($q | endswith("Gi")) then ($q | rtrimstr("Gi") | tonumber)
+        elif ($q | endswith("Ti")) then ($q | rtrimstr("Ti") | tonumber * 1024)
+        else ($q | tonumber / 1073741824)
+        end;
       def nodebody($n): {
         role: (if iscp($n) then "control-plane" else "worker" end),
         status: (if ready($n) then "Ready" else "NotReady" end),
