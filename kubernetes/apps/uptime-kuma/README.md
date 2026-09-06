@@ -15,7 +15,9 @@ The component exists alongside kube-prometheus-stack on purpose. Prometheus and 
 
 The pod is pinned to the Nitro worker by hostname, following the Velero precedent. That node has the most free memory and the volume replicates to both workers, so the pin is about resource budget, not data locality.
 
-The 1Gi Longhorn volume holds the SQLite database. Kuma prunes heartbeat history by its own retention setting, so growth is bounded. The volume is not covered by a Velero schedule: Velero's R2 target has a documented capacity ceiling and a no-unattended-schedule contract. An on-demand Velero backup with file-system backup opted in for this pod volume is the supported off-cluster path.
+The 1Gi Longhorn volume holds the SQLite database. Kuma prunes heartbeat history by its own retention setting, so growth is bounded.
+
+A Longhorn RecurringJob takes a snapshot every night and keeps seven. The PVC label `recurring-job.longhorn.io/uptime-kuma-daily` is what binds the volume to the job; Longhorn copies it onto the volume at bind time. Snapshots share the volume's disks, so they cover a corrupt database or a bad upgrade, not the loss of both workers. The volume is not covered by a Velero schedule: Velero's R2 target has a documented capacity ceiling and a no-unattended-schedule contract. An on-demand Velero backup with file-system backup opted in for this pod volume is the supported off-cluster path.
 
 ## Files
 
@@ -24,6 +26,7 @@ The 1Gi Longhorn volume holds the SQLite database. Kuma prunes heartbeat history
 | `values.yaml` | Chart overrides: existing claim, Recreate strategy, node pin, resources, security context |
 | `resources/pvc.yaml` | The Longhorn claim |
 | `resources/network-policy.yaml` | The egress allowlist and ingress restriction |
+| `resources/recurring-job.yaml` | The nightly Longhorn snapshot job, seven retained |
 | `../../clusters/devata/uptime-kuma.yaml` | The Argo CD Application wiring chart, values, and resources |
 
 The chart is `uptime-kuma` from `helm.irsigler.cloud`, pinned in the Application. Renovate proposes bumps.
@@ -33,14 +36,15 @@ The chart is `uptime-kuma` from `helm.irsigler.cloud`, pinned in the Application
 ```sh
 kubectl -n uptime get deploy,pod,pvc,ciliumnetworkpolicy
 kubectl -n longhorn-system get volumes.longhorn.io
+kubectl -n longhorn-system get recurringjobs.longhorn.io uptime-kuma-daily
 kubectl -n uptime port-forward svc/uptime-kuma 3001:3001
 ```
 
-The pod must be `Running` on `talos-lqv-w4u` with the claim `Bound` to a Longhorn volume showing two healthy replicas. The first visit to the port-forward creates the admin account. A test HTTP monitor must turn green and a monitor against a port outside the allowlist must stay red, which proves the policy is enforced rather than merely present. A test notification to the Discord webhook must arrive.
+The pod must be `Running` on `talos-lqv-w4u` with the claim `Bound` to a Longhorn volume showing two healthy replicas and the `uptime-kuma-daily` job listed under the volume's recurring jobs. The first visit to the port-forward creates the admin account. A test HTTP monitor must turn green and a monitor against a port outside the allowlist must stay red, which proves the policy is enforced rather than merely present. A test notification to the Discord webhook must arrive.
 
 ## Rollback
 
-Remove the Application. Argo CD prunes the Deployment, Service, policy, and claim; Longhorn deletes the volume because the StorageClass reclaim policy is `Delete`. Take an on-demand Velero backup first if the monitor configuration is worth keeping.
+Remove the Application. Argo CD prunes the Deployment, Service, policy, snapshot job, and claim; Longhorn deletes the volume because the StorageClass reclaim policy is `Delete`. Take an on-demand Velero backup first if the monitor configuration is worth keeping.
 
 ## Known limitations
 

@@ -1,0 +1,22 @@
+# A daily Longhorn snapshot of the Uptime Kuma volume, retained for seven
+# days. Snapshots stay on the same disks as the volume, so this guards
+# against a corrupt SQLite database or a bad upgrade, not against losing
+# both workers. Off-cluster copies remain the on-demand Velero path.
+#
+# The job lives in longhorn-system because that is where Longhorn reads
+# RecurringJob objects, but it belongs to this workload: it selects only
+# volumes whose PVC carries the matching recurring-job label.
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: uptime-kuma-daily
+  namespace: longhorn-system
+spec:
+  name: uptime-kuma-daily
+  task: snapshot
+  cron: "15 3 * * *"
+  retain: 7
+  concurrency: 1
+  groups: []
+  labels:
+    app.kubernetes.io/name: uptime-kuma
