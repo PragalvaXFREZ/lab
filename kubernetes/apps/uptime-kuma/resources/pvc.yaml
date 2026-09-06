@@ -5,6 +5,9 @@ metadata:
   namespace: uptime
   labels:
     app.kubernetes.io/name: uptime-kuma
+    # Longhorn copies this label to the volume and attaches the daily
+    # snapshot job declared in recurring-job.yaml.
+    recurring-job.longhorn.io/uptime-kuma-daily: enabled
 spec:
   accessModes:
     - ReadWriteOnce
