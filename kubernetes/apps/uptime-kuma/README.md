@@ -2,6 +2,8 @@
 
 Uptime Kuma runs outbound HTTP and TCP checks against endpoints the operator cares about and posts state changes to a Discord webhook. It is an operator convenience, not a service anyone else depends on: its own availability is bounded by devata's, and devata is a homelab behind a residential uplink. Anything that must alert when the homelab itself is down needs an external watcher, which this component deliberately does not try to be.
 
+The Application carries the platform tier: Kuma is operator tooling beside Grafana and Alertmanager, not a showcase workload, and the public homelab page lists platform-tier apps in its stack row.
+
 The component exists alongside kube-prometheus-stack on purpose. Prometheus and Alertmanager watch the cluster from inside. Kuma watches the world from the cluster's point of view, with a status page and a notification path that takes a minute to configure rather than a ruleset. The two do not share alert routes.
 
 ## Safety model
