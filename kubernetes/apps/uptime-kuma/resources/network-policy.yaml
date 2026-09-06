@@ -1,5 +1,5 @@
-# Uptime Kuma only needs to reach out: DNS, the endpoints it checks, and the
-# Discord webhook. Inbound traffic arrives through the LAN Gateway's Envoy,
+# Uptime Kuma only needs to reach out: DNS, the HTTP endpoints it checks, and
+# the Discord webhook. Inbound traffic arrives through the LAN Gateway's Envoy,
 # which Cilium identifies as the ingress entity. Nothing else may connect.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -41,10 +41,3 @@ spec:
               protocol: TCP
             - port: "443"
               protocol: TCP
-    # ICMP echo for ping monitors.
-    - toEntities:
-        - world
-      icmps:
-        - fields:
-            - type: 8
-              family: IPv4
