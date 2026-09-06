@@ -47,6 +47,14 @@ spec:
         - ports:
             - port: "8081"
               protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: uptime
+            k8s:app.kubernetes.io/name: uptime-kuma
+      toPorts:
+        - ports:
+            - port: "3001"
+              protocol: TCP
     - toEntities:
         - world
       toPorts:
