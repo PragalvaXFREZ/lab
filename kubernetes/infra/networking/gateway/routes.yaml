@@ -12,6 +12,7 @@ spec:
   hostnames:
     - grafana.lab.pragalva.me
     - hubble.lab.pragalva.me
+    - kuma.lab.pragalva.me
   rules:
     - matches:
         - path:
@@ -69,6 +70,32 @@ spec:
           name: hubble-ui
           namespace: kube-system
           port: 80
+          weight: 1
+      matches:
+        - path:
+            type: PathPrefix
+            value: /
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kuma
+  namespace: gateway-system
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: lan-gateway
+      sectionName: https
+  hostnames:
+    - kuma.lab.pragalva.me
+  rules:
+    - backendRefs:
+        - group: ""
+          kind: Service
+          name: uptime-kuma
+          namespace: uptime
+          port: 3001
           weight: 1
       matches:
         - path:
