@@ -5,8 +5,10 @@ metadata:
   namespace: uptime
   labels:
     app.kubernetes.io/name: uptime-kuma
-    # Longhorn copies this label to the volume and attaches the daily
-    # snapshot job declared in recurring-job.yaml.
+    # The source label tells Longhorn to treat this PVC as the authority for
+    # the volume's recurring jobs and to sync the job labels below onto the
+    # volume periodically. Without it the job label is inert.
+    recurring-job.longhorn.io/source: enabled
     recurring-job.longhorn.io/uptime-kuma-daily: enabled
 spec:
   accessModes:

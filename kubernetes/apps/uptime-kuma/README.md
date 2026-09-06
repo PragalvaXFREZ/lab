@@ -17,7 +17,7 @@ The pod is pinned to the Nitro worker by hostname, following the Velero preceden
 
 The 1Gi Longhorn volume holds the SQLite database. Kuma prunes heartbeat history by its own retention setting, so growth is bounded.
 
-A Longhorn RecurringJob takes a snapshot every night and keeps seven. The PVC label `recurring-job.longhorn.io/uptime-kuma-daily` is what binds the volume to the job; Longhorn copies it onto the volume at bind time. Snapshots share the volume's disks, so they cover a corrupt database or a bad upgrade, not the loss of both workers. The volume is not covered by a Velero schedule: Velero's R2 target has a documented capacity ceiling and a no-unattended-schedule contract. An on-demand Velero backup with file-system backup opted in for this pod volume is the supported off-cluster path.
+A Longhorn RecurringJob takes a snapshot every night and keeps seven. Two PVC labels bind the volume to the job: `recurring-job.longhorn.io/source: enabled` makes the PVC the authority for the volume's recurring jobs, and `recurring-job.longhorn.io/uptime-kuma-daily: enabled` names the job. Longhorn syncs them onto the volume periodically; without the source label the job label is ignored. Snapshots share the volume's disks, so they cover a corrupt database or a bad upgrade, not the loss of both workers. The volume is not covered by a Velero schedule: Velero's R2 target has a documented capacity ceiling and a no-unattended-schedule contract. An on-demand Velero backup with file-system backup opted in for this pod volume is the supported off-cluster path.
 
 ## Files
 
