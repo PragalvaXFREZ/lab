@@ -28,8 +28,9 @@ resources:
     memory: 256Mi
 
 # The image runs as root, which the baseline Pod Security level permits.
-# Privilege escalation is off and every capability is dropped except NET_RAW,
-# which ICMP monitors need for raw sockets.
+# Privilege escalation is off and every capability is dropped. NET_RAW is
+# not added back: baseline rejects it, so ICMP ping monitors are unsupported
+# here. HTTP and TCP monitors need no capability.
 podSecurityContext:
   seccompProfile:
     type: RuntimeDefault
@@ -38,8 +39,6 @@ securityContext:
   capabilities:
     drop:
       - ALL
-    add:
-      - NET_RAW
 
 # The chart's NetworkPolicy is generic. The CiliumNetworkPolicy in resources/
 # carries the explicit egress allowlist instead.
