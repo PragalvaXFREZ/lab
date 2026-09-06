@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: uptime-kuma
+  namespace: argocd
+  labels:
+    devata.pragalva.me/tier: workload
+spec:
+  project: default
+  sources:
+    - repoURL: https://helm.irsigler.cloud
+      chart: uptime-kuma
+      targetRevision: 4.2.0
+      helm:
+        valueFiles:
+          - $values/kubernetes/apps/uptime-kuma/values.yaml
+    - repoURL: https://github.com/PragalvaXFREZ/lab.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/PragalvaXFREZ/lab.git
+      targetRevision: main
+      path: kubernetes/apps/uptime-kuma/resources
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: uptime
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true

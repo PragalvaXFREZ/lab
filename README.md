@@ -79,7 +79,8 @@ lab/
 │   │   ├── ingress/           # public exposure components
 │   │   └── storage/           # storage classes and persistence configuration
 │   └── apps/                  # workloads
-│       └── showcase/          # public evidence produced by the cluster
+│       ├── showcase/          # public evidence produced by the cluster
+│       └── uptime-kuma/       # outbound availability checks with Discord alerts
 │
 ├── ansible/                   # host bootstrap and automation
 ├── scripts/                   # deterministic repository checks
