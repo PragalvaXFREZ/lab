@@ -1,0 +1,47 @@
+# Uptime Kuma: outbound HTTP checks and a Discord webhook for the operator.
+# Only non-default values are set; the chart's defaults are the reference.
+
+# The chart ships a Deployment by default. A single replica with a
+# ReadWriteOnce claim needs Recreate, otherwise a rollout tries to start the
+# new pod while the old one still holds the volume.
+strategy:
+  type: Recreate
+
+# Data lives in the claim declared in resources/pvc.yaml so the volume keeps
+# its Longhorn class and labels under repository control, not chart defaults.
+volume:
+  enabled: true
+  existingClaim: uptime-kuma-data
+
+# The Nitro worker has the most memory headroom. Pinning by hostname follows
+# the Velero precedent and keeps this off the control plane.
+nodeSelector:
+  kubernetes.io/hostname: talos-lqv-w4u
+
+# Memory is limited so a leak or a runaway check count cannot crowd out
+# platform pods. No CPU limit: the checks are bursty and the node is idle.
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
+
+# The image runs as root, which the baseline Pod Security level permits.
+# Privilege escalation is off and every capability is dropped except NET_RAW,
+# which ICMP monitors need for raw sockets.
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+    add:
+      - NET_RAW
+
+# The chart's NetworkPolicy is generic. The CiliumNetworkPolicy in resources/
+# carries the explicit egress allowlist instead.
+networkPolicy:
+  enabled: false

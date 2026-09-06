@@ -1,0 +1,50 @@
+# Uptime Kuma only needs to reach out: DNS, the endpoints it checks, and the
+# Discord webhook. Inbound traffic arrives through the LAN Gateway's Envoy,
+# which Cilium identifies as the ingress entity. Nothing else may connect.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: uptime-kuma
+  namespace: uptime
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: uptime-kuma
+  ingress:
+    - fromEntities:
+        - ingress
+      toPorts:
+        - ports:
+            - port: "3001"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    # HTTP and HTTPS checks and the Discord webhook. Monitors on other ports
+    # need an explicit entry here; the policy is the allowlist.
+    - toEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP
+            - port: "443"
+              protocol: TCP
+    # ICMP echo for ping monitors.
+    - toEntities:
+        - world
+      icmps:
+        - fields:
+            - type: 8
+              family: IPv4
