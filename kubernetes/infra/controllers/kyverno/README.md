@@ -36,4 +36,14 @@ Every `failurePolicy` must be `Ignore`, and the namespace selector must name all
 
 ## Rollback
 
-Remove policies first, then revert the Kyverno child Application. Argo CD prunes the controllers and the CRDs, and the CRD removal deletes all policies and reports. If a webhook configuration stays behind, delete it by its `webhook.kyverno.io/managed-by=kyverno` label; while it exists it fails open.
+Remove policies first, then revert the Kyverno child Application. That Application has the Argo CD resources finalizer, so the removal cascades: Argo CD deletes the controllers and the CRDs, and the CRD removal deletes all policies and reports. The other child Applications in this repository do not have this finalizer; their workloads stay when the Application is removed.
+
+Then check that nothing stays behind:
+
+```bash
+kubectl get ns kyverno
+kubectl get crd | grep kyverno
+kubectl get validatingwebhookconfigurations,mutatingwebhookconfigurations -l webhook.kyverno.io/managed-by=kyverno
+```
+
+If a webhook configuration stays, delete it. While it exists it fails open.

@@ -7,6 +7,10 @@ metadata:
     argocd.argoproj.io/compare-options: ServerSideDiff=true
   labels:
     devata.pragalva.me/tier: platform
+  # Cascade delete: when this Application is removed from Git, Argo CD also
+  # removes Kyverno, its CRDs, and with them every policy and report.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   sources:

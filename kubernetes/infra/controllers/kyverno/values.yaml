@@ -45,4 +45,5 @@ reportsController:
     clusterRole:
       extraResources:
         - apiGroups: [argoproj.io]
+          # The chart sets get, list and watch for this controller.
           resources: [applications, appprojects, applicationsets]
