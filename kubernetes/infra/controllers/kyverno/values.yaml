@@ -1,0 +1,49 @@
+# Audit-only install. Every setting here keeps Kyverno out of the way of the
+# API server: webhooks fail open and skip the namespaces that run the cluster.
+features:
+  # Force failurePolicy: Ignore on every Kyverno webhook, whatever a policy asks for.
+  forceFailurePolicyIgnore:
+    enabled: true
+
+config:
+  # A Helm post-delete hook that Argo CD reports as drift.
+  preserve: false
+  webhooks:
+    # This list replaces the chart default, so kube-system is restated.
+    # The kyverno namespace is added by excludeKyvernoNamespace.
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - kube-system
+            - argocd
+  excludeKyvernoNamespace: true
+
+# No cleanup policies are in use.
+cleanupController:
+  enabled: false
+
+# Kyverno cannot grant itself access to custom resources. A policy that matches
+# an Argo CD kind is not ready until these controllers can read that kind.
+admissionController:
+  rbac:
+    clusterRole:
+      extraResources:
+        - apiGroups: [argoproj.io]
+          resources: [applications, appprojects, applicationsets]
+          verbs: [get, list, watch]
+backgroundController:
+  rbac:
+    clusterRole:
+      extraResources:
+        - apiGroups: [argoproj.io]
+          resources: [applications, appprojects, applicationsets]
+          verbs: [get, list, watch]
+reportsController:
+  rbac:
+    clusterRole:
+      extraResources:
+        - apiGroups: [argoproj.io]
+          # The chart sets get, list and watch for this controller.
+          resources: [applications, appprojects, applicationsets]
