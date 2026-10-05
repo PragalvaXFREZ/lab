@@ -58,7 +58,7 @@ kube-state-metrics:
 kubeControllerManager:
   enabled: true
   endpoints:
-  - 192.168.1.8
+  - 192.168.1.10
   service:
     enabled: true
     port: 10257
@@ -69,7 +69,7 @@ kubeControllerManager:
 kubeEtcd:
   enabled: true
   endpoints:
-  - 192.168.1.8
+  - 192.168.1.10
   service:
     enabled: true
     port: 2381
@@ -81,7 +81,7 @@ kubeProxy:
 kubeScheduler:
   enabled: true
   endpoints:
-  - 192.168.1.8
+  - 192.168.1.10
   service:
     enabled: true
     port: 10259
