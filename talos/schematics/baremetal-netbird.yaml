@@ -1,5 +1,5 @@
-# Talos Image Factory schematic for the bare-metal control plane.
-# Keep this image minimal: NetBird is the only extension required for
+# Talos Image Factory schematic for bare-metal nodes that do not hold Longhorn
+# replicas. Keep this image minimal: NetBird is the only extension required for
 # recovery access independent of Kubernetes and the home LAN.
 customization:
   systemExtensions:

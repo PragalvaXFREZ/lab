@@ -5,3 +5,5 @@ Reusable Talos configuration patches, applied on top of the base machine configs
 `netbird.extensionserviceconfig.example.yaml` is a secret-free enrollment template. It overrides the Talos v1.12 NetBird extension's volatile `/var/run` config path with persistent `/var/lib` storage. Append it to the complete live configuration for exactly one node, including that node's auxiliary volume documents, dry-run the full document set, then insert a one-off setup key and apply it. Never commit or paste a live setup key.
 
 `netbird.node-ip.patch.yaml` pins kubelet node traffic to the physical LAN so the NetBird interface cannot replace the Kubernetes `InternalIP`.
+
+`etcd-lan-peers.patch.yaml` pins etcd peer traffic to the physical LAN so the NetBird interface cannot replace the etcd peer URL of a control plane node. Apply it before a second control plane node joins.

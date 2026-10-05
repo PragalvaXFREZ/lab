@@ -51,4 +51,4 @@ machine:
           - http://192.168.1.13:5000
 cluster:
   controlPlane:
-    endpoint: https://192.168.1.8:6443
+    endpoint: https://192.168.1.2:6443
