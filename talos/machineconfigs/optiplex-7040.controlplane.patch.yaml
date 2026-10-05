@@ -1,5 +1,7 @@
-# Machine-specific patch for the Dell OptiPlex 7040 worker.
-# Apply this to a current devata worker configuration kept outside Git.
+# Machine-specific patch for the Dell OptiPlex 7040 control plane node.
+# Apply this to a devata control plane configuration kept outside Git,
+# after the node-specific fields of the source node are removed.
+# The node also runs workloads and keeps its Longhorn disk.
 machine:
   nodeLabels:
     node-role.kubernetes.io/worker: ""
@@ -30,6 +32,8 @@ machine:
           - network: 0.0.0.0/0
             gateway: 192.168.1.1
         dhcp: false
+        vip:
+          ip: 192.168.1.2
     nameservers:
       - 192.168.1.1
       - 1.1.1.1
@@ -39,5 +43,14 @@ machine:
         endpoints:
           - http://192.168.1.13:5000
 cluster:
+  allowSchedulingOnControlPlanes: true
   controlPlane:
-    endpoint: https://192.168.1.8:6443
+    endpoint: https://192.168.1.2:6443
+  apiServer:
+    certSANs:
+      - 192.168.1.2
+      - 192.168.1.10
+      - talos-opt-7040
+  etcd:
+    advertisedSubnets:
+      - 192.168.1.0/24

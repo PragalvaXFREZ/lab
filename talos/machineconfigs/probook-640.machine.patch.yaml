@@ -1,0 +1,33 @@
+# Machine-specific patch for the HP ProBook 640 G1 worker.
+# Apply this to a current devata worker configuration kept outside Git.
+# The node has 3.3 GiB of memory and a rotational disk. It holds no Longhorn
+# replicas, and the scheduler prefers the other nodes.
+machine:
+  nodeLabels:
+    node-role.kubernetes.io/worker: ""
+  nodeTaints:
+    devata.pragalva.me/low-capacity: "true:PreferNoSchedule"
+  install:
+    disk: /dev/sda
+    image: factory.talos.dev/metal-installer/7326f0cbca7a0e700ac1efa3f32e88df9ebe5010e6e842a8ed36fdc99ee98ead:v1.12.11
+    wipe: false
+  kubelet:
+    nodeIP:
+      validSubnets:
+        - 192.168.1.0/24
+  network:
+    hostname: talos-probook-640
+    interfaces:
+      - interface: enp0s25
+        addresses:
+          - 192.168.1.8/24
+        routes:
+          - network: 0.0.0.0/0
+            gateway: 192.168.1.1
+        dhcp: false
+    nameservers:
+      - 192.168.1.1
+      - 1.1.1.1
+cluster:
+  controlPlane:
+    endpoint: https://192.168.1.2:6443

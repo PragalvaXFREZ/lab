@@ -10,6 +10,8 @@ NetBird runs as a Talos extension service on each physical node. It is independe
 
 The Talos v1.12.11 extension defaults `NB_CONFIG` to volatile `/var/run/netbird/config.json`. The enrollment document must override it with `/var/lib/netbird/config.json` so the peer identity survives a reboot. Talos v1.13 includes this upstream correction, but upgrading the operating system is not required for this configuration fix.
 
+NetBird makes each enrolled node multihomed. On a control plane node, etcd must also be restricted to `192.168.1.0/24` with `../patches/etcd-lan-peers.patch.yaml`, otherwise it can advertise the NetBird address as its peer URL.
+
 NetBird makes each enrolled node multihomed. Kubelet must be restricted to `192.168.1.0/24` before the extension starts, otherwise it can publish the NetBird address as the node `InternalIP` and break control-plane, Cilium, and CSI traffic. Keep NetBird in its default kernel mode.
 
 ## NetBird account preparation
@@ -35,7 +37,7 @@ The setup key is bootstrap-only. A reboot must reuse the private peer identity f
 | Node | Schematic | Talos v1.12.11 installer |
 | --- | --- | --- |
 | `talos-opt-7040` | `../schematics/baremetal-longhorn.yaml` | `factory.talos.dev/metal-installer/f141fc2a08d5a459a80d871faa48d7dc92bc354e4faf6cdbafe1cc0fac717991:v1.12.11` |
-| `talos-k3t-9cz` | `../schematics/controlplane-netbird.yaml` | `factory.talos.dev/metal-installer/7326f0cbca7a0e700ac1efa3f32e88df9ebe5010e6e842a8ed36fdc99ee98ead:v1.12.11` |
+| `talos-probook-640` | `../schematics/baremetal-netbird.yaml` | `factory.talos.dev/metal-installer/7326f0cbca7a0e700ac1efa3f32e88df9ebe5010e6e842a8ed36fdc99ee98ead:v1.12.11` |
 | `talos-lqv-w4u` | `../schematics/nvidia-lts-longhorn.yaml` | `factory.talos.dev/metal-installer/6da7b4e2db4c4bdf73bf98fcdcb689b2abb21567c57082a8413742b96851ee33:v1.12.11` |
 
 The Nitro image moves the NVIDIA LTS extension from the v1.11.5 catalog's 535 branch to the v1.12.11 catalog's supported 580 branch. Upgrade that node last and treat GPU behavior as a separate verification surface.
@@ -120,6 +122,9 @@ unset KUBERNETES_NODE NETBIRD_CONFIG_PATH NETBIRD_DRY_RUN_PATH NETBIRD_EXTRA_DOC
 Perform the dry run while the placeholder is still present so no real key appears in the diff. Keep the output private because unchanged context can contain existing machine-configuration secrets. It must add only one `ExtensionServiceConfig` document named `netbird`. On the OptiPlex, the diff must not delete or alter `VolumeConfig/EPHEMERAL` or `UserVolumeConfig/longhorn`. Applying the NetBird document alone removes those auxiliary documents and is prohibited.
 
 ## Rollout order
+
+This section records the first rollout on Talos v1.11.5. At that time `192.168.1.8` was the single control plane node and its hostname was `talos-k3t-9cz`. The control plane now runs on `talos-opt-7040`; see [`../machineconfigs/`](../machineconfigs). The control plane peer belongs in the `devata-control-plane` NetBird group, and a kubeconfig for the NetBird address uses `talos-opt-7040` as `tls-server-name`.
+
 
 Upgrade one node at a time and stop at the first failed gate.
 

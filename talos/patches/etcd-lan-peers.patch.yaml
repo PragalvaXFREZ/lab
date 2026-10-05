@@ -1,0 +1,7 @@
+# Keep etcd peer traffic on the physical LAN after NetBird adds wt0.
+# Without this, a control plane node can advertise its NetBird address
+# as the etcd peer URL, and a second member cannot reach it on TCP 2380.
+cluster:
+  etcd:
+    advertisedSubnets:
+      - 192.168.1.0/24
