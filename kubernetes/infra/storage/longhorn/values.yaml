@@ -22,3 +22,9 @@ defaultSettings:
 
 longhornUI:
   replicas: 1
+
+# Run the manager only on nodes that hold a Longhorn disk. A node without the
+# iscsi-tools Talos extension cannot pass the manager environment check.
+longhornManager:
+  nodeSelector:
+    node.longhorn.io/create-default-disk: "true"
