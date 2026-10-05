@@ -22,6 +22,8 @@ The Acer Nitro 5 worker uses `nitro-5.machine.patch.yaml` to preserve its hostna
 
 The ProBook worker uses `probook-640.machine.patch.yaml`. The node has a rotational disk and little memory. It has no Longhorn label and no `iscsi-tools` extension, so Longhorn does not place replicas on it. The `devata.pragalva.me/low-capacity` taint has the `PreferNoSchedule` effect: the scheduler uses the node only when the other nodes cannot take a pod.
 
+The NodeRestriction admission plugin does not let a worker kubelet change its own taints or `node-role.kubernetes.io` labels. Thus `machine.nodeTaints` and a `node-role` entry in `machine.nodeLabels` fail on a worker with a `forbidden` error from `k8s.NodeApplyController`. The patch sets the taint with the kubelet `registerWithTaints` field, which applies only when the kubelet creates its `Node` object. To apply the taint to a registered node, or to set the worker role label, use `kubectl taint` and `kubectl label` with administrator credentials.
+
 The installer references target Talos v1.12.11 because that is the first supported adjacent minor whose extension catalog contains NetBird.
 
 ## Control plane contract

@@ -2,11 +2,9 @@
 # Apply this to a current devata worker configuration kept outside Git.
 # The node has 3.3 GiB of memory and a rotational disk. It holds no Longhorn
 # replicas, and the scheduler prefers the other nodes.
+# A worker kubelet cannot change its own taints or `node-role` labels after
+# registration (NodeRestriction admission). The taint is set at registration.
 machine:
-  nodeLabels:
-    node-role.kubernetes.io/worker: ""
-  nodeTaints:
-    devata.pragalva.me/low-capacity: "true:PreferNoSchedule"
   install:
     disk: /dev/sda
     image: factory.talos.dev/metal-installer/7326f0cbca7a0e700ac1efa3f32e88df9ebe5010e6e842a8ed36fdc99ee98ead:v1.12.11
@@ -15,6 +13,11 @@ machine:
     nodeIP:
       validSubnets:
         - 192.168.1.0/24
+    extraConfig:
+      registerWithTaints:
+        - key: devata.pragalva.me/low-capacity
+          value: "true"
+          effect: PreferNoSchedule
   network:
     hostname: talos-probook-640
     interfaces:
