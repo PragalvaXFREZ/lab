@@ -10,7 +10,6 @@ Rendered machine configurations contain the cluster trust material and stay outs
 | --- | --- | --- | --- |
 | `talos-opt-7040` | Dell OptiPlex 7040 | control plane, workloads, Longhorn | `optiplex-7040.controlplane.patch.yaml`, `optiplex-7040.ephemeral.yaml`, `optiplex-7040.longhorn-volume.yaml` |
 | `talos-lqv-w4u` | Acer Nitro 5 | worker, Longhorn | `nitro-5.machine.patch.yaml` |
-| `talos-probook-640` | HP ProBook 640 G1 | worker | `probook-640.machine.patch.yaml` |
 
 The OptiPlex uses three inputs:
 
@@ -20,9 +19,7 @@ The OptiPlex uses three inputs:
 
 The Acer Nitro 5 worker uses `nitro-5.machine.patch.yaml` to preserve its hostname, networking, NVIDIA kernel configuration, and registry mirror while adding the Longhorn kubelet mount and storage-node label. Its `/var/mnt/longhorn` directory remains inside the existing Talos EPHEMERAL volume. No partition change is part of that patch. Its active Image Factory source is `../schematics/nvidia-lts-longhorn.yaml`; the older `nvidia-lts535*.yaml` files remain as historical experiment inputs.
 
-The ProBook worker uses `probook-640.machine.patch.yaml`. The node has a rotational disk and little memory. It has no Longhorn label and no `iscsi-tools` extension, so Longhorn does not place replicas on it. The `devata.pragalva.me/low-capacity` taint has the `PreferNoSchedule` effect: the scheduler uses the node only when the other nodes cannot take a pod.
-
-The NodeRestriction admission plugin does not let a worker kubelet change its own taints or `node-role.kubernetes.io` labels. Thus `machine.nodeTaints` and a `node-role` entry in `machine.nodeLabels` fail on a worker with a `forbidden` error from `k8s.NodeApplyController`. The patch sets the taint with the kubelet `registerWithTaints` field, which applies only when the kubelet creates its `Node` object. To apply the taint to a registered node, or to set the worker role label, use `kubectl taint` and `kubectl label` with administrator credentials.
+A worker kubelet cannot change its own taints or `node-role.kubernetes.io` labels after registration, because of the NodeRestriction admission plugin. Thus `machine.nodeTaints` and a `node-role` entry in `machine.nodeLabels` fail on a worker with a `forbidden` error from `k8s.NodeApplyController`. To taint a worker, set the kubelet `registerWithTaints` field in `machine.kubelet.extraConfig`, which applies only when the kubelet creates its `Node` object, or use `kubectl taint` with administrator credentials.
 
 The installer references target Talos v1.12.11 because that is the first supported adjacent minor whose extension catalog contains NetBird.
 
@@ -100,6 +97,8 @@ talosctl apply-config --insecure --nodes <dhcp-address> --file full.yaml
 ```
 
 The reset removes the NetBird identity in `/var/lib/netbird`. Enroll the node again with a new one-off setup key as described in [`../netbird/`](../netbird).
+
+To remove a node from devata, drain it, wipe or reinstall the machine, and delete its `Node` object. The HP ProBook 640 G1, the first control plane node, left the cluster this way after its time as a worker ([ADR 0005](../../docs/decisions/0005-probook-leaves-the-cluster.md)).
 
 ## Rollback
 
