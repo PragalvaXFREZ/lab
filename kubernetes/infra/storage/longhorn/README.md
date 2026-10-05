@@ -10,7 +10,7 @@ Longhorn creates a default disk only on nodes labeled `node.longhorn.io/create-d
 
 The OptiPlex path is a dedicated XFS user volume. The Nitro path is inside Talos EPHEMERAL storage, so it survives ordinary reboots and upgrades but not a Talos wipe. Two-replica volumes remain limited by the smaller eligible disk and require both workers to be available for full redundancy.
 
-The Longhorn manager runs only on nodes with the same label (`longhornManager.nodeSelector`). A node without the label has no manager and no CSI plugin, so a pod that mounts a `longhorn` claim cannot start there. `talos-probook-640` is such a node.
+The Longhorn manager runs only on nodes with the same label (`longhornManager.nodeSelector`). A node without the label has no manager and no CSI plugin, so a pod that mounts a `longhorn` claim cannot start there.
 
 ## Files
 

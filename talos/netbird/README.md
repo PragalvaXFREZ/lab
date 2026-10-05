@@ -37,7 +37,6 @@ The setup key is bootstrap-only. A reboot must reuse the private peer identity f
 | Node | Schematic | Talos v1.12.11 installer |
 | --- | --- | --- |
 | `talos-opt-7040` | `../schematics/baremetal-longhorn.yaml` | `factory.talos.dev/metal-installer/f141fc2a08d5a459a80d871faa48d7dc92bc354e4faf6cdbafe1cc0fac717991:v1.12.11` |
-| `talos-probook-640` | `../schematics/baremetal-netbird.yaml` | `factory.talos.dev/metal-installer/7326f0cbca7a0e700ac1efa3f32e88df9ebe5010e6e842a8ed36fdc99ee98ead:v1.12.11` |
 | `talos-lqv-w4u` | `../schematics/nvidia-lts-longhorn.yaml` | `factory.talos.dev/metal-installer/6da7b4e2db4c4bdf73bf98fcdcb689b2abb21567c57082a8413742b96851ee33:v1.12.11` |
 
 The Nitro image moves the NVIDIA LTS extension from the v1.11.5 catalog's 535 branch to the v1.12.11 catalog's supported 580 branch. Upgrade that node last and treat GPU behavior as a separate verification surface.
@@ -123,7 +122,7 @@ Perform the dry run while the placeholder is still present so no real key appear
 
 ## Rollout order
 
-This section records the first rollout on Talos v1.11.5. At that time `192.168.1.8` was the single control plane node and its hostname was `talos-k3t-9cz`. The control plane now runs on `talos-opt-7040`; see [`../machineconfigs/`](../machineconfigs). The control plane peer belongs in the `devata-control-plane` NetBird group, and a kubeconfig for the NetBird address uses `talos-opt-7040` as `tls-server-name`.
+This section records the first rollout on Talos v1.11.5. At that time `192.168.1.8` was the single control plane node, an HP ProBook 640 G1 with the hostname `talos-k3t-9cz` and a NetBird-only schematic (ID `7326f0cbca7a0e700ac1efa3f32e88df9ebe5010e6e842a8ed36fdc99ee98ead`). That machine is no longer a devata node. The control plane now runs on `talos-opt-7040`; see [`../machineconfigs/`](../machineconfigs). The control plane peer belongs in the `devata-control-plane` NetBird group, and a kubeconfig for the NetBird address uses `talos-opt-7040` as `tls-server-name`.
 
 
 Upgrade one node at a time and stop at the first failed gate.
