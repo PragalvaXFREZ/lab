@@ -11,7 +11,7 @@ Devata has limited resources. Uptime Kuma was not used much in my case, so keepi
 
 Remove Uptime Kuma from the reconciled cluster, including its Gateway route, certificate hostname, cross-namespace grant, and cloudflared backend permission. Preserve the former manifests under `archive/uptime-kuma/` for reference and recovery.
 
-Keep the existing Prometheus, Alertmanager, and off-cluster snapshot heartbeat. The portfolio keeps a grayscale entry marked Archived and links to the historical note.
+Keep the existing Prometheus, Alertmanager, and off-cluster snapshot heartbeat. The portfolio keeps a grayscale entry marked Archived. The historical note remains in the private vault.
 
 ## Consequences
 
