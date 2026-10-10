@@ -1,7 +1,7 @@
 # cloudflared
 
 Runs two outbound-only connectors for the remotely managed `devata` Cloudflare Tunnel. The tunnel publishes
-Grafana, Hubble, and Uptime Kuma without opening an inbound port on the home network.
+Grafana and Hubble without opening an inbound port on the home network.
 
 ## Request path
 
@@ -13,7 +13,6 @@ HTTP host routing.
 | --- | --- | --- |
 | `grafana.pragalva.me` | `grafana.lab.pragalva.me` | Grafana login |
 | `hubble.pragalva.me` | `hubble.lab.pragalva.me` | Cloudflare Access with connector JWT enforcement |
-| `kuma.pragalva.me` | `kuma.lab.pragalva.me` | Cloudflare Access in front of the Kuma login |
 
 The origin service for every route is
 `https://cilium-gateway-lan-gateway.gateway-system.svc.cluster.local:443`. The existing `.lab` DNS records
@@ -25,7 +24,7 @@ Cloudflare.
 - The tunnel token is committed only as a SealedSecret and mounted as a read-only file.
 - The pods do not receive Kubernetes API credentials and run as a non-root user with a read-only filesystem.
 - Egress permits cluster DNS, Cilium's `ingress` identity, the Grafana backend on TCP `3000`, the Hubble UI
-  backend on TCP `8081`, the Uptime Kuma backend on TCP `3001`, and Cloudflare on TCP or UDP `7844` with TCP `443` for management and fallback.
+  backend on TCP `8081`, and Cloudflare on TCP or UDP `7844` with TCP `443` for management and fallback.
   Cilium Gateway hairpin traffic crosses the `ingress` identity before reaching a routed backend, so the
   policy allows those identities directly instead of relying on the selectorless Gateway Service.
 - Prometheus is the only permitted inbound consumer of the connector metrics endpoint.
@@ -39,11 +38,8 @@ Cloudflare.
 3. Open `https://grafana.pragalva.me` outside the LAN and confirm Grafana requires its own login.
 4. Open `https://hubble.pragalva.me` in a private window and confirm Cloudflare Access rejects an unauthorized
    request before Hubble is reached.
-5. Open `https://kuma.pragalva.me` in a private window and confirm Cloudflare Access challenges before the
-   Kuma login renders; after passing Access, confirm heartbeats update live, which proves the WebSocket
-   survives the proxy.
-6. Delete one pod and confirm the endpoint remains available while the Deployment restores two replicas.
-7. Scale the Deployment to zero only during an approved rollback test and confirm both public endpoints fail
+5. Delete one pod and confirm the endpoint remains available while the Deployment restores two replicas.
+6. Scale the Deployment to zero only during an approved rollback test and confirm both public endpoints fail
    while the `.lab` endpoints remain reachable on the LAN. Restore two replicas immediately afterward and
    confirm Argo reports no drift.
 
