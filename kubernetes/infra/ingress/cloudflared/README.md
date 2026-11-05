@@ -1,7 +1,7 @@
 # cloudflared
 
 Runs two outbound-only connectors for the remotely managed `devata` Cloudflare Tunnel. The tunnel publishes
-Grafana and Hubble without opening an inbound port on the home network.
+Grafana, Hubble, and infra-portal without opening an inbound port on the home network.
 
 ## Request path
 
@@ -13,6 +13,7 @@ HTTP host routing.
 | --- | --- | --- |
 | `grafana.pragalva.me` | `grafana.lab.pragalva.me` | Grafana login |
 | `hubble.pragalva.me` | `hubble.lab.pragalva.me` | Cloudflare Access with connector JWT enforcement |
+| `infra.pragalva.me` | `infra.lab.pragalva.me` | Public pages; GitHub sign-in, invite-only, for writing |
 
 The origin service for every route is
 `https://cilium-gateway-lan-gateway.gateway-system.svc.cluster.local:443`. The existing `.lab` DNS records
@@ -24,7 +25,7 @@ Cloudflare.
 - The tunnel token is committed only as a SealedSecret and mounted as a read-only file.
 - The pods do not receive Kubernetes API credentials and run as a non-root user with a read-only filesystem.
 - Egress permits cluster DNS, Cilium's `ingress` identity, the Grafana backend on TCP `3000`, the Hubble UI
-  backend on TCP `8081`, and Cloudflare on TCP or UDP `7844` with TCP `443` for management and fallback.
+  backend on TCP `8081`, the infra-portal backend on TCP `8000`, and Cloudflare on TCP or UDP `7844` with TCP `443` for management and fallback.
   Cilium Gateway hairpin traffic crosses the `ingress` identity before reaching a routed backend, so the
   policy allows those identities directly instead of relying on the selectorless Gateway Service.
 - Prometheus is the only permitted inbound consumer of the connector metrics endpoint.

@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infra-portal
+  namespace: infra-portal
+  labels:
+    app.kubernetes.io/name: infra-portal
+    app.kubernetes.io/part-of: infra-portal
+  annotations:
+    # Wave 2: starts after the migration hook (wave 1) has succeeded.
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: infra-portal
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: infra-portal
+        app.kubernetes.io/part-of: infra-portal
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 15
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          # Pinned by digest. Each release changes this line and the one in migrate-job.yaml.
+          image: ghcr.io/pragalvaxfrez/infra-portal:IMAGE_PENDING
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: BASE_URL
+              value: https://infra.pragalva.me
+            - name: COOKIE_SECURE
+              value: "true"
+            - name: ADMIN_GITHUB_LOGINS
+              value: PragalvaXFREZ
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: infra-portal-db
+                  key: DATABASE_URL
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: infra-portal-session
+                  key: SESSION_SECRET
+            # Optional: without this Secret the site runs and sign-in returns 503.
+            - name: GITHUB_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: infra-portal-github
+                  key: GITHUB_CLIENT_ID
+                  optional: true
+            - name: GITHUB_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: infra-portal-github
+                  key: GITHUB_CLIENT_SECRET
+                  optional: true
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+          # Liveness never touches the database; see the app README.
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: infra-portal
+  namespace: infra-portal
+  labels:
+    app.kubernetes.io/name: infra-portal
+    app.kubernetes.io/part-of: infra-portal
+spec:
+  selector:
+    app.kubernetes.io/name: infra-portal
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

@@ -12,3 +12,4 @@ The format is lightweight, after [Michael Nygard's ADRs](https://cognitect.com/b
 - [0004 - Control plane on the OptiPlex](./0004-control-plane-on-the-optiplex.md)
 - [0005 - The ProBook leaves the cluster](./0005-probook-leaves-the-cluster.md)
 - [0006 - Archive Uptime Kuma](./0006-archive-uptime-kuma.md)
+- [0007 - Host infra-portal from its own repository](./0007-host-infra-portal.md)

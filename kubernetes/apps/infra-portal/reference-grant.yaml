@@ -1,0 +1,15 @@
+# Lets the HTTPRoute in gateway-system send traffic to this namespace's Service.
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-infra-portal-route
+  namespace: infra-portal
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: gateway-system
+  to:
+    - group: ""
+      kind: Service
+      name: infra-portal

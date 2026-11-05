@@ -13,6 +13,7 @@ spec:
   dnsNames:
     - grafana.lab.pragalva.me
     - hubble.lab.pragalva.me
+    - infra.lab.pragalva.me
   privateKey:
     algorithm: ECDSA
     size: 256
