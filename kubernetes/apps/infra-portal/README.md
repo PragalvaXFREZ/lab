@@ -21,7 +21,7 @@ browser -> Cloudflare -> cloudflared -> Cilium Gateway (infra.lab.pragalva.me) -
 | `reference-grant.yaml` | Lets the HTTPRoute in `gateway-system` reach the Service. |
 | `sealedsecret-db.yaml` | `POSTGRES_PASSWORD` and `DATABASE_URL`. |
 | `sealedsecret-session.yaml` | `SESSION_SECRET` for the session cookie. |
-| `sealedsecret-github.yaml` | `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`. Optional: without it, the site runs and sign-in returns 503. |
+| `sealedsecret-github.yaml` | `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` of the production OAuth app. The Deployment marks them optional: without them, the site runs and sign-in returns 503. |
 
 ## Allowed flows
 
@@ -52,6 +52,9 @@ kubectl create secret generic infra-portal-github -n infra-portal --dry-run=clie
   --from-env-file="$HOME/.config/infra-portal/github.env" \
   | kubeseal --context pragalva@devata --format yaml > sealedsecret-github.yaml
 ```
+
+After sealing a new Secret, bump `infra-portal.pragalva.me/secrets-revision` in `deployment.yaml` in the same
+pull request, so the pods restart and read the new values.
 
 `~/.config/infra-portal/github.env` holds `GITHUB_CLIENT_ID=` and `GITHUB_CLIENT_SECRET=` lines from the production GitHub OAuth
 app, whose callback URL is `https://infra.pragalva.me/auth/github/callback`.
