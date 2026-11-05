@@ -1,6 +1,6 @@
-# Automation is off at birth, the same drill as every adoption: the root app
-# creates this child, the first sync is manual and verified end to end, and
-# prune and selfHeal come on in a follow-up change.
+# Automation was off at birth, the same drill as every adoption: the root app
+# created this child, the first sync was manual (2026-11-05) and verified
+# through the LAN Gateway before prune and selfHeal came on.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -18,5 +18,8 @@ spec:
     server: https://kubernetes.default.svc
     namespace: infra-portal
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
