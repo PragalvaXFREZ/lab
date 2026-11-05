@@ -47,6 +47,14 @@ spec:
         - ports:
             - port: "8081"
               protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: infra-portal
+            k8s:app.kubernetes.io/name: infra-portal
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP
     - toEntities:
         - world
       toPorts:

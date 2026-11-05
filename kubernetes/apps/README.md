@@ -4,4 +4,5 @@ The workloads that run on top of the platform. Each app is its own folder, with 
 
 New workloads are added as new folders here, which is what lets the cluster grow without touching the platform layer.
 
+- [`infra-portal/`](./infra-portal) member profiles and blogs at `infra.pragalva.me`, built from the [infra-portal](https://github.com/PragalvaXFREZ/infra-portal) repository.
 - [`showcase/`](./showcase) public evidence producers, including durable snapshots and aggregate traffic streams.

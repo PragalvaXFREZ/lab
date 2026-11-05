@@ -1,0 +1,54 @@
+# Applies Alembic migrations before the new app version starts.
+# It is an Argo CD Sync hook in wave 1: after Postgres (wave 0) is Healthy and
+# before the Deployment (wave 2). It runs on every sync; migrations already
+# applied are skipped. Keep the image identical to deployment.yaml.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: infra-portal-migrate
+  namespace: infra-portal
+  labels:
+    app.kubernetes.io/name: infra-portal-migrate
+    app.kubernetes.io/part-of: infra-portal
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: infra-portal-migrate
+        app.kubernetes.io/part-of: infra-portal
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: ghcr.io/pragalvaxfrez/infra-portal:sha-732acc0@sha256:c1ee61f0186e8f9e6ed1c92bbc551b90240c1bff5535319e65cfa996112ed57b
+          command: ["python", "-m", "infra_portal.migrate"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: infra-portal-db
+                  key: DATABASE_URL
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

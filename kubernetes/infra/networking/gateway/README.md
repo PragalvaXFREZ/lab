@@ -1,10 +1,10 @@
 # LAN gateway
 
-The Cilium Gateway API terminates public ACME certificates for Grafana and Hubble on the LAN. MetalLB assigns `192.168.1.244` to the generated LoadBalancer Service. DNS-only `A` records for `grafana.lab.pragalva.me` and `hubble.lab.pragalva.me` point to that address.
+The Cilium Gateway API terminates public ACME certificates for Grafana, Hubble, and infra-portal on the LAN. MetalLB assigns `192.168.1.244` to the generated LoadBalancer Service. DNS-only `A` records for `grafana.lab.pragalva.me` and `hubble.lab.pragalva.me` point to that address.
 
 The Gateway uses the `metallb.universe.tf` annotation prefix required by the installed MetalLB `v0.14.5` controller.
 
-The Gateway routes to the `kps-grafana` and `hubble-ui` Services through explicit cross-namespace grants. The Grafana and Hubble LoadBalancer types and direct addresses stay unchanged as the compatibility and rollback path.
+The Gateway routes to the `kps-grafana`, `hubble-ui`, and `infra-portal` Services through explicit cross-namespace grants. The infra-portal grant lives beside the workload in `kubernetes/apps/infra-portal/`, so it is created with its namespace; infra-portal is ClusterIP only and has no `.lab` DNS record, so it is reached through the tunnel. The Grafana and Hubble LoadBalancer types and direct addresses stay unchanged as the compatibility and rollback path.
 
 ## Verification
 

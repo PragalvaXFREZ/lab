@@ -52,6 +52,7 @@ The **sandbox** in [`lab-experiments/`](./lab-experiments) is where things get b
 - **`talos/` is reviewed but not reconciled.** It contains reusable patches, non-secret volume documents, and Image Factory schematics. Rendered machine configurations contain cluster trust material and remain outside Git.
 - **`kubernetes/` contains authoritative cluster state.** Bootstrap is applied once by hand; the root and child Applications reconcile cluster composition, platform components, and workloads with self-heal enabled. Pruning is enabled except where a component's recovery boundary requires otherwise, such as Argo CD managing its own installation.
 - **`lab-experiments/` is non-authoritative.** Nothing in the sandbox is referenced by the GitOps root or child Applications.
+- **infra-portal is the one public application that accepts input.** Its source and image come from a separate repository; this repository pins the image digest, so only a reviewed commit here changes what runs. Writing requires an invited GitHub account, and its database accepts connections only from the app and its migration job.
 - **Public state is allowlisted.** The snapshot publisher builds a validated document from approved fields and can write only to `devata-snapshot`. The traffic streamer has no inbound route or Kubernetes API token and can send only two aggregate Prometheus rates to its authenticated relay.
 
 ## Repository map
@@ -79,6 +80,7 @@ lab/
 │   │   ├── ingress/           # public exposure components
 │   │   └── storage/           # storage classes and persistence configuration
 │   └── apps/                  # workloads
+│       ├── infra-portal/      # member profiles and blogs, image built in its own repository
 │       └── showcase/          # public evidence produced by the cluster
 │
 ├── ansible/                   # host bootstrap and automation

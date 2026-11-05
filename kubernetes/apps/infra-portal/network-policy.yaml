@@ -1,0 +1,101 @@
+# Every pod in the namespace is selected by a policy, so each one denies by
+# default and allows only the flows listed here.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: infra-portal
+  namespace: infra-portal
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: infra-portal
+  ingress:
+    # The Cilium Gateway forwards requests with the reserved ingress identity.
+    - fromEntities:
+        - ingress
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: postgres
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+    # GitHub OAuth: the token exchange and the user lookup.
+    - toFQDNs:
+        - matchName: github.com
+        - matchName: api.github.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: infra-portal-migrate
+  namespace: infra-portal
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: infra-portal-migrate
+  ingress:
+    - {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: postgres
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: postgres
+  namespace: infra-portal
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: infra-portal
+        - matchLabels:
+            app.kubernetes.io/name: infra-portal-migrate
+      toPorts:
+        - ports:
+            - port: "5432"
+              protocol: TCP
+  # The database opens no outbound connections.
+  egress:
+    - {}

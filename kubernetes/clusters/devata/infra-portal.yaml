@@ -1,0 +1,22 @@
+# Automation is off at birth, the same drill as every adoption: the root app
+# creates this child, the first sync is manual and verified end to end, and
+# prune and selfHeal come on in a follow-up change.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infra-portal
+  namespace: argocd
+  labels:
+    devata.pragalva.me/tier: workload
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/PragalvaXFREZ/lab.git
+    targetRevision: main
+    path: kubernetes/apps/infra-portal
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: infra-portal
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
