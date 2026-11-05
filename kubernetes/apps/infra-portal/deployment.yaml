@@ -36,7 +36,7 @@ spec:
       containers:
         - name: app
           # Pinned by digest. Each release changes this line and the one in migrate-job.yaml.
-          image: ghcr.io/pragalvaxfrez/infra-portal:IMAGE_PENDING
+          image: ghcr.io/pragalvaxfrez/infra-portal:sha-732acc0@sha256:c1ee61f0186e8f9e6ed1c92bbc551b90240c1bff5535319e65cfa996112ed57b
           ports:
             - name: http
               containerPort: 8000
