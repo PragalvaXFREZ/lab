@@ -45,14 +45,15 @@ PostgreSQL opens no outbound connections.
 
 ## Secrets
 
-Seal from a file or a pipe so values never appear in the shell history or the transcript:
+Seal from a file outside every repository, so values never appear in the shell history or in git:
 
 ```bash
 kubectl create secret generic infra-portal-github -n infra-portal --dry-run=client -o yaml \
-  --from-env-file=github.env | kubeseal --context pragalva@devata --format yaml > sealedsecret-github.yaml
+  --from-env-file="$HOME/.config/infra-portal/github.env" \
+  | kubeseal --context pragalva@devata --format yaml > sealedsecret-github.yaml
 ```
 
-`github.env` holds `GITHUB_CLIENT_ID=` and `GITHUB_CLIENT_SECRET=` lines from the production GitHub OAuth
+`~/.config/infra-portal/github.env` holds `GITHUB_CLIENT_ID=` and `GITHUB_CLIENT_SECRET=` lines from the production GitHub OAuth
 app, whose callback URL is `https://infra.pragalva.me/auth/github/callback`.
 
 ## Verification
