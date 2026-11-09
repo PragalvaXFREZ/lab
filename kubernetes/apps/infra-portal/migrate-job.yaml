@@ -33,7 +33,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: migrate
-          image: ghcr.io/pragalvaxfrez/infra-portal:sha-65d06d9@sha256:575718f01dfa2537f1f66e94ccbe52dbfabc4a5be96bc778d7cb89adddad8315
+          image: ghcr.io/pragalvaxfrez/infra-portal:sha-71eb542@sha256:d11db5c131820514e95f10b2a5889d0725d92fb8242b8b80d3399cc1211d01f1
           command: ["python", "-m", "infra_portal.migrate"]
           env:
             - name: DATABASE_URL
