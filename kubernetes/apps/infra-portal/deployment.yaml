@@ -27,7 +27,7 @@ spec:
       annotations:
         # Environment variables from Secrets are read only at start. Bump this
         # value in the same change that rotates a Secret, to roll the pods.
-        infra-portal.pragalva.me/secrets-revision: "2"
+        infra-portal.pragalva.me/secrets-revision: "3"
     spec:
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 15

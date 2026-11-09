@@ -22,7 +22,7 @@ browser -> Cloudflare -> cloudflared -> Cilium Gateway (infra.lab.pragalva.me) -
 | `sealedsecret-db.yaml` | `POSTGRES_PASSWORD` and `DATABASE_URL`. |
 | `sealedsecret-session.yaml` | `SESSION_SECRET` for the session cookie. |
 | `sealedsecret-github.yaml` | `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` of the production OAuth app. The Deployment marks them optional: without them, the site runs and sign-in returns 503. |
-| `sealedsecret-resend.yaml` | `RESEND_API_KEY` for follower email. Optional: without it the Follow forms are hidden. Added once the key exists; see Secrets. |
+| `sealedsecret-resend.yaml` | `RESEND_API_KEY` for follower email. Sending-only key for `pragalva.me`. Optional: without it the Follow forms are hidden. |
 
 ## Allowed flows
 
