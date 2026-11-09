@@ -74,6 +74,15 @@ spec:
                   name: infra-portal-github
                   key: GITHUB_CLIENT_SECRET
                   optional: true
+            # Follower email. Optional: without the key the Follow forms are hidden.
+            - name: MAIL_FROM
+              value: infra <posts@pragalva.me>
+            - name: RESEND_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: infra-portal-resend
+                  key: RESEND_API_KEY
+                  optional: true
           readinessProbe:
             httpGet:
               path: /readyz

@@ -22,6 +22,7 @@ browser -> Cloudflare -> cloudflared -> Cilium Gateway (infra.lab.pragalva.me) -
 | `sealedsecret-db.yaml` | `POSTGRES_PASSWORD` and `DATABASE_URL`. |
 | `sealedsecret-session.yaml` | `SESSION_SECRET` for the session cookie. |
 | `sealedsecret-github.yaml` | `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` of the production OAuth app. The Deployment marks them optional: without them, the site runs and sign-in returns 503. |
+| `sealedsecret-resend.yaml` | `RESEND_API_KEY` for follower email. Optional: without it the Follow forms are hidden. Added once the key exists; see Secrets. |
 
 ## Allowed flows
 
@@ -31,6 +32,7 @@ browser -> Cloudflare -> cloudflared -> Cilium Gateway (infra.lab.pragalva.me) -
 | app | kube-dns | 53 |
 | app | postgres | 5432 |
 | app | `github.com`, `api.github.com` | 443 |
+| app | `api.resend.com` | 443 |
 | migration job | kube-dns, postgres | 53, 5432 |
 
 PostgreSQL opens no outbound connections.
@@ -58,6 +60,15 @@ pull request, so the pods restart and read the new values.
 
 `~/.config/infra-portal/github.env` holds `GITHUB_CLIENT_ID=` and `GITHUB_CLIENT_SECRET=` lines from the production GitHub OAuth
 app, whose callback URL is `https://infra.pragalva.me/auth/github/callback`.
+
+`~/.config/infra-portal/resend.env` holds one `RESEND_API_KEY=` line, a Resend key with sending access
+only, for the domain `pragalva.me`:
+
+```bash
+kubectl create secret generic infra-portal-resend -n infra-portal --dry-run=client -o yaml \
+  --from-env-file="$HOME/.config/infra-portal/resend.env" \
+  | kubeseal --context pragalva@devata --format yaml > sealedsecret-resend.yaml
+```
 
 ## Verification
 

@@ -46,6 +46,13 @@ spec:
         - ports:
             - port: "443"
               protocol: TCP
+    # Resend: confirmation emails and new-post emails to followers.
+    - toFQDNs:
+        - matchName: api.resend.com
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
