@@ -1,0 +1,62 @@
+# Silent at rest: every rule is false while both instances run, the standby
+# streams, and the daily backup succeeds. A failed backup or bucket-usage Job
+# is reported by the kube-prometheus-stack KubeJobFailed rule, so it is not
+# repeated here.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: postgres
+  namespace: postgres
+spec:
+  groups:
+    - name: postgres
+      rules:
+        - alert: PostgresInstanceMissing
+          expr: >-
+            (count(cnpg_collector_up{namespace="postgres", cluster="postgres"} == 1) or vector(0)) < 2
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Fewer than two PostgreSQL instances are up
+            description: The shared cluster has had fewer than two running instances for ten minutes. The primary accepts writes without a synchronous standby.
+        - alert: PostgresStandbyNotStreaming
+          # The lag metric reads zero when the standby is disconnected, so a
+          # running standby that does not stream needs its own rule. Silent
+          # while PostgresInstanceMissing explains the same condition.
+          expr: >-
+            max(cnpg_pg_replication_streaming_replicas{namespace="postgres"} and on(pod) (cnpg_pg_replication_in_recovery{namespace="postgres"} == 0)) < 1
+            unless on()
+            (count(cnpg_collector_up{namespace="postgres", cluster="postgres"} == 1) < 2)
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: The PostgreSQL primary has no streaming standby
+            description: No standby has streamed from the primary for ten minutes, so commits are not replicated.
+        - alert: PostgresReplicationLagHigh
+          expr: >-
+            max(cnpg_pg_replication_lag{namespace="postgres"}) > 60
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: PostgreSQL standby replay lag is above one minute
+            description: The standby has replayed WAL more than sixty seconds behind the primary for ten minutes. Check the link between the nodes.
+        - alert: PostgresBackupTooOld
+          expr: >-
+            (time() - kube_cronjob_status_last_successful_time{namespace="postgres", cronjob="postgres-backup"}) > 93600
+            or
+            (
+              (time() - kube_cronjob_created{namespace="postgres", cronjob="postgres-backup"}) > 93600
+              unless on(namespace, cronjob)
+              kube_cronjob_status_last_successful_time{namespace="postgres", cronjob="postgres-backup"}
+            )
+            or
+            absent(kube_cronjob_info{namespace="postgres", cronjob="postgres-backup"})
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: No successful PostgreSQL backup in 26 hours
+            description: The daily logical backup has not succeeded for more than 26 hours, has never succeeded since the CronJob was created, or the CronJob no longer exists. A suspended CronJob also fires this alert.

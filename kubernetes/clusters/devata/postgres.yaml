@@ -1,0 +1,38 @@
+# The cloudnative-pg Application is merged and Healthy first: the Cluster
+# needs its CRD and admission webhook.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: postgres
+  namespace: argocd
+  labels:
+    devata.pragalva.me/tier: platform
+  annotations:
+    # The operator's defaulting webhook rewrites spec.postgresql.parameters
+    # and adds defaults. A client-side diff would report those fields as
+    # OutOfSync forever; a server-side diff runs the webhook in a dry run.
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/PragalvaXFREZ/lab.git
+    targetRevision: main
+    path: kubernetes/infra/storage/postgres
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: postgres
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    # A failed automated sync is not re-run for the same revision, and the
+    # first sync can race the operator webhook.
+    retry:
+      limit: 10
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 10m
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

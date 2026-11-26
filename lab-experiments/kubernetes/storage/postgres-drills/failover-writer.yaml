@@ -1,0 +1,100 @@
+# Disposable writer for the failover drill. It inserts numbered rows through
+# postgres-rw, one autocommit transaction per row, and records an id in
+# /work/acked only after the server acknowledged its commit. Failures and a
+# final summary go to the log with UTC timestamps. The pod then sleeps so the
+# ledger stays readable. Not reconciled.
+#
+# It carries the backup job's label so the reconciled network policy admits
+# it to port 5432 without a policy change. Delete it after the drill.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: failover-writer
+  namespace: postgres
+  labels:
+    app.kubernetes.io/name: postgres-backup
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 26
+    runAsGroup: 26
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: writer
+      image: ghcr.io/cloudnative-pg/postgresql:18.7-202611230809-minimal-trixie@sha256:c8caac9817d2b5e5e66297a3ccf86d9fcbd68f097aa6cc00161d83f9635e88cc
+      command:
+        - /bin/sh
+        - -c
+        - |
+          set -u
+          now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+          # A fresh table, so a stale one cannot hide a lost row.
+          psql -X -q -v ON_ERROR_STOP=1 \
+            -c 'DROP TABLE IF EXISTS failover_drill' \
+            -c 'CREATE TABLE failover_drill (id bigint PRIMARY KEY, at timestamptz NOT NULL DEFAULT now())' \
+            || { echo "$(now) setup failed" >&2; sleep 86400; exit 1; }
+          : > /work/acked
+          attempted=0 acked=0 failed=0 first_failure=none last_failure=none
+          while [ "$attempted" -lt 3000 ]; do
+            attempted=$((attempted + 1))
+            # A client-side timeout, so an insert in flight at the kill
+            # cannot hang the loop.
+            if timeout 10 psql -X -q -v ON_ERROR_STOP=1 \
+                -c "INSERT INTO failover_drill (id) VALUES ($attempted)" 2>/dev/null; then
+              acked=$((acked + 1))
+              echo "$attempted" >> /work/acked
+            else
+              failed=$((failed + 1))
+              t=$(now)
+              [ "$first_failure" = none ] && first_failure=$t
+              last_failure=$t
+              echo "$t insert $attempted failed" >&2
+              sleep 1
+            fi
+          done
+          echo "$(now) summary attempted=$attempted acknowledged=$acked failed=$failed first_failure=$first_failure last_failure=$last_failure" >&2
+          # Keep the ledger in /work/acked readable until the pod is deleted.
+          sleep 86400
+      env:
+        - name: PGHOST
+          value: postgres-rw
+        - name: PGDATABASE
+          value: app
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-app
+              key: username
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-app
+              key: password
+        - name: PGSSLMODE
+          value: require
+        - name: PGCONNECT_TIMEOUT
+          value: "3"
+      resources:
+        requests:
+          cpu: 20m
+          memory: 32Mi
+        limits:
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      volumeMounts:
+        - name: work
+          mountPath: /work
+        - name: tmp
+          mountPath: /tmp
+  volumes:
+    - name: work
+      emptyDir: {}
+    - name: tmp
+      emptyDir: {}

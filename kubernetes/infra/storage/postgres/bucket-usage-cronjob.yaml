@@ -1,0 +1,86 @@
+# Bucket-size warning. Every six hours, measures the whole bucket, including
+# Velero's objects, and fails when it holds more than WARN_BYTES. The failed
+# Job is reported by the kube-prometheus-stack KubeJobFailed rule and clears
+# when the Job expires. It reads object listings only and has no database
+# access.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-bucket-usage
+  namespace: postgres
+  labels:
+    app.kubernetes.io/name: postgres-bucket-usage
+spec:
+  schedule: "41 */6 * * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 300
+      # A failure stays visible until about the next run, then clears.
+      ttlSecondsAfterFinished: 21600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: postgres-bucket-usage
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 26
+            runAsGroup: 26
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: measure
+              # Keep identical to the upload container in backup-cronjob.yaml.
+              image: amazon/aws-cli:2.36.1@sha256:406ca32d31e640a56e8d52921b40528cc64bfa59ec9cb4ee1456db6746cb7292
+              command: ["/bin/sh", "/scripts/bucket-usage.sh"]
+              envFrom:
+                - secretRef:
+                    name: postgres-backup-s3
+              env:
+                - name: AWS_DEFAULT_REGION
+                  value: auto
+                - name: AWS_REQUEST_CHECKSUM_CALCULATION
+                  value: when_required
+                - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+                  value: when_required
+                - name: AWS_EC2_METADATA_DISABLED
+                  value: "true"
+                # 70 % of the decimal 1 GB ceiling shared with Velero.
+                - name: WARN_BYTES
+                  value: "700000000"
+                - name: HOME
+                  value: /tmp
+              resources:
+                requests:
+                  cpu: 20m
+                  memory: 96Mi
+                limits:
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: scripts
+              configMap:
+                name: postgres-backup-scripts
+                defaultMode: 0555
+            - name: tmp
+              emptyDir:
+                sizeLimit: 16Mi
