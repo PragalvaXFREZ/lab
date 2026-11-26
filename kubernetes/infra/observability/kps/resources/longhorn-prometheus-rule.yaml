@@ -1,0 +1,89 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: longhorn
+  namespace: monitoring
+spec:
+  groups:
+    - name: longhorn.volumes
+      rules:
+        # longhorn_volume_robustness is one series per state with value 1 for
+        # the current one. Detached volumes report "unknown", so they never
+        # match. Longhorn keeps "faulted" on a detached volume only when no
+        # replica is usable.
+        - alert: LonghornVolumeFaulted
+          expr: >-
+            max by (volume, pvc, pvc_namespace)
+            (longhorn_volume_robustness{state="faulted"}) == 1
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: Longhorn volume {{ $labels.volume }} is faulted
+            description: Volume {{ $labels.volume }} ({{ $labels.pvc_namespace }}/{{ $labels.pvc }}) has no healthy replica for 10 minutes.
+        - alert: LonghornVolumeDegraded
+          expr: >-
+            max by (volume, pvc, pvc_namespace)
+            (longhorn_volume_robustness{state="degraded"}) == 1
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: Longhorn volume {{ $labels.volume }} is degraded
+            description: Volume {{ $labels.volume }} ({{ $labels.pvc_namespace }}/{{ $labels.pvc }}) has run with fewer healthy replicas than requested for 30 minutes.
+    - name: longhorn.nodes
+      rules:
+        # Each manager reports only its own node, so a down node has no status
+        # series. Compare the ready count with the number of Longhorn nodes.
+        - alert: LonghornNodeNotReady
+          expr: >-
+            max(longhorn_node_count_total)
+            - (count(max by (node) (longhorn_node_status{condition="ready"}) == 1) or on() vector(0))
+            > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: A Longhorn node is not ready
+            description: '{{ $value }} Longhorn node(s) have not reported ready for 15 minutes.'
+        - alert: LonghornDiskNotReady
+          expr: >-
+            max by (node, disk)
+            (longhorn_disk_status{condition="ready"}) == 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Longhorn disk {{ $labels.disk }} on {{ $labels.node }} is not ready
+            description: The disk has reported not ready for 15 minutes.
+        - alert: LonghornNodeNotSchedulable
+          expr: >-
+            max by (node)
+            (longhorn_node_status{condition="schedulable"}) == 0
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: Longhorn node {{ $labels.node }} is not schedulable
+            description: Longhorn has not been able to place replicas on the node for 30 minutes.
+        - alert: LonghornDiskNotSchedulable
+          expr: >-
+            max by (node, disk)
+            (longhorn_disk_status{condition="schedulable"}) == 0
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: Longhorn disk {{ $labels.disk }} on {{ $labels.node }} is not schedulable
+            description: Longhorn has not been able to place replicas on the disk for 30 minutes.
+        - alert: LonghornDiskUsageHigh
+          expr: >-
+            max by (node, disk) (longhorn_disk_usage_bytes)
+            / max by (node, disk) (longhorn_disk_capacity_bytes)
+            > 0.85
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: Longhorn disk {{ $labels.disk }} on {{ $labels.node }} is over 85 percent full
+            description: 'Disk usage is {{ $value | humanizePercentage }} and has stayed above 85 percent for 30 minutes.'

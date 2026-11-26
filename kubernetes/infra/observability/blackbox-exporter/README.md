@@ -8,10 +8,11 @@ The child Application is [`../../../clusters/devata/blackbox-exporter.yaml`](../
 
 - `values.yaml` defines the `icmp` and `tcp_connect` modules, the security context, and resource limits.
 - `resources/probe.yaml` is the `Probe` that Prometheus selects through its `release: kps` label. It probes every 60 seconds as job `probook`.
+- `resources/prometheus-rule.yaml` alerts when every probe fails for 10 minutes, and when no probe result exists for 15 minutes.
 
 ## Modules
 
-The Probe uses the `icmp` module. ICMP leaves no connection log on the target host. The `tcp_connect` module is configured as an alternative: swap the `module` and target lines in `resources/probe.yaml` for the commented ones to probe `192.168.1.8:22` instead.
+The Probe uses the `icmp` module. The `tcp_connect` module is configured as an alternative: swap the `module` and target lines in `resources/probe.yaml` for the commented ones.
 
 The exporter tries an unprivileged ICMP socket before a raw one. The pod sets `net.ipv4.ping_group_range` to the exporter group, so ICMP works without a capability and the container keeps the chart default security context: UID and GID 1000, non-root, read-only root filesystem, and every capability dropped. The `tcp_connect` module needs no special privilege.
 
@@ -26,4 +27,4 @@ kubectl -n monitoring get probe probook
 
 ## Rollback
 
-Revert the change in git. Argo CD prunes the exporter and the Probe. No state is kept.
+Revert the change in git. Argo CD prunes the exporter, the Probe, and its rule. No state is kept.

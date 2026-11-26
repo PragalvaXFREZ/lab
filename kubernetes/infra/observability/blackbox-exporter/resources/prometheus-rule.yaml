@@ -1,0 +1,28 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: blackbox-exporter
+  namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  groups:
+    - name: blackbox.probook
+      rules:
+        - alert: ProBookProbeFailing
+          expr: probe_success{job="probook"} == 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: The ProBook host does not answer probes
+            description: Every probe of {{ $labels.instance }} has failed for 10 minutes.
+        # No probe_success series means the exporter or the Probe is missing.
+        - alert: ProBookProbeMissing
+          expr: absent(probe_success{job="probook"})
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: The ProBook probe returns no result
+            description: Prometheus has recorded no probe result for the ProBook host for 15 minutes.

@@ -20,6 +20,8 @@ velero_backup_location_status_gauge
 
 Every backup storage location must return `1`. Reverting the `metrics` block in git removes the ServiceMonitor and restores the previous pod annotations.
 
+The alert rules live in [`../../observability/kps/resources/velero-prometheus-rule.yaml`](../../observability/kps/resources/velero-prometheus-rule.yaml), applied by the kps Application, because this Application's only directory source holds encrypted credentials. There is no stale-backup rule because backups are on demand only.
+
 ## Files
 
 - `values.yaml` configures the R2 backup location, AWS-compatible plugin, Kopia node agent, metrics, and resource limits.

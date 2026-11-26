@@ -22,6 +22,8 @@ up{job="longhorn-backend"}
 
 Both manager targets must return `1`. Reverting the `metrics` block in git removes the ServiceMonitor without touching Longhorn itself.
 
+The alert rules live in [`../../observability/kps/resources/longhorn-prometheus-rule.yaml`](../../observability/kps/resources/longhorn-prometheus-rule.yaml), applied by the kps Application, because this Application has no directory source.
+
 ## Files
 
 - `values.yaml` pins the V1 engine, two-replica policy, non-default StorageClass, storage path, and ServiceMonitor.
