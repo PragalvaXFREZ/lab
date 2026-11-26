@@ -1,0 +1,28 @@
+replicaCount: 1
+
+crds:
+  create: true
+
+# Sized for one Cluster. Confirm the request against observed usage after the
+# first week; the limit leaves room for informer caches during a failover.
+resources:
+  requests:
+    cpu: 20m
+    memory: 96Mi
+  limits:
+    memory: 256Mi
+
+# Prefer the control plane node. In a partition between the nodes only the
+# side with the API server can fail over, and an operator on the other side
+# could not act. Stay schedulable on the Nitro during a drain.
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+
+monitoring:
+  podMonitorEnabled: true
