@@ -101,6 +101,23 @@ kube-state-metrics:
 # Argo CD excludes Endpoints and never applies the chart's selector-less ones.
 # enabled stays true so the chart keeps the rules and dashboards for each
 # component; only its Service, Endpoints and ServiceMonitor are turned off.
+# The API server exports one histogram series per resource, verb and bucket,
+# so every new CRD and every new kind of request adds series. The families
+# dropped below are read by no rule or dashboard of this chart or this
+# repository. The first entry is the chart default, repeated because setting
+# this list replaces it.
+kubeApiServer:
+  serviceMonitor:
+    metricRelabelings:
+    - action: drop
+      regex: (etcd_request|apiserver_request_slo|apiserver_request_sli|apiserver_request)_duration_seconds_bucket;(0\.15|0\.2|0\.3|0\.35|0\.4|0\.45|0\.6|0\.7|0\.8|0\.9|1\.25|1\.5|1\.75|2|3|3\.5|4|4\.5|6|7|8|9|15|20|40|45|50)(\.0)?
+      sourceLabels:
+      - __name__
+      - le
+    - action: drop
+      regex: apiserver_request_body_size_bytes_bucket|apiserver_response_sizes_bucket|apiserver_watch_list_duration_seconds_bucket|apiserver_watch_cache_read_wait_seconds_bucket|apiserver_watch_events_sizes_bucket|etcd_request_duration_seconds_bucket
+      sourceLabels:
+      - __name__
 kubeControllerManager:
   enabled: true
   service:
@@ -142,12 +159,16 @@ prometheus:
     nodeSelector:
       kubernetes.io/hostname: talos-opt-7040
     podMonitorSelectorNilUsesHelmValues: false
+    # The limit covers the process and the page cache it reads its blocks
+    # through. At 900Mi the process alone used 605Mi and left 286Mi of cache,
+    # so the 3 day and 30 day API server rules re-read blocks from disk on
+    # every evaluation and missed their interval.
     resources:
       limits:
-        memory: 900Mi
+        memory: 1400Mi
       requests:
         cpu: 100m
-        memory: 450Mi
+        memory: 600Mi
     retention: 7d
     retentionSize: 4GiB
     ruleSelectorNilUsesHelmValues: false
