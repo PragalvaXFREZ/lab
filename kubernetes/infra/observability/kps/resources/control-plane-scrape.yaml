@@ -1,0 +1,61 @@
+# Control plane scrape targets, one ScrapeConfig per component. Each target
+# address appears once here, so changing it in git changes the scrape.
+# jobName keeps the job label the chart's rules and dashboards select on.
+# The namespace label keeps alerts for these targets in kube-system, as the
+# chart's ServiceMonitors did. The HTTPS targets send the Prometheus
+# ServiceAccount token through the service-account-token scrape class and skip
+# certificate verification, because the components serve self-signed
+# certificates. etcd serves plain HTTP metrics without authentication.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: kube-scheduler
+  namespace: monitoring
+  labels:
+    release: kps
+spec:
+  jobName: kube-scheduler
+  scrapeClass: service-account-token
+  scheme: HTTPS
+  tlsConfig:
+    insecureSkipVerify: true
+  staticConfigs:
+    - targets:
+        - 192.168.1.10:10259
+      labels:
+        namespace: kube-system
+---
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: kube-controller-manager
+  namespace: monitoring
+  labels:
+    release: kps
+spec:
+  jobName: kube-controller-manager
+  scrapeClass: service-account-token
+  scheme: HTTPS
+  tlsConfig:
+    insecureSkipVerify: true
+  staticConfigs:
+    - targets:
+        - 192.168.1.10:10257
+      labels:
+        namespace: kube-system
+---
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: kube-etcd
+  namespace: monitoring
+  labels:
+    release: kps
+spec:
+  jobName: kube-etcd
+  scheme: HTTP
+  staticConfigs:
+    - targets:
+        - 192.168.1.10:2381
+      labels:
+        namespace: kube-system
