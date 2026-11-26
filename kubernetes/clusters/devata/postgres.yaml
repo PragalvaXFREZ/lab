@@ -1,0 +1,26 @@
+# Merge after cloudnative-pg is Healthy: the Cluster needs its CRD and webhook.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: postgres
+  namespace: argocd
+  labels:
+    devata.pragalva.me/tier: platform
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/PragalvaXFREZ/lab.git
+    targetRevision: main
+    path: kubernetes/infra/storage/postgres
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: postgres
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+      # The operator webhook fills defaults into the Cluster spec. Server-Side
+      # Apply compares only the fields this repository sets.
+      - ServerSideApply=true

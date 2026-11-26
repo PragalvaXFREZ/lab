@@ -1,0 +1,84 @@
+# Disposable writer for the failover drill. It inserts numbered rows through
+# postgres-rw, one autocommit transaction per row, and records an id only
+# after the server acknowledged its commit. Not reconciled.
+#
+# It carries the backup job's label so the reconciled network policy admits
+# it to port 5432 without a policy change. Delete it after the drill.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: failover-writer
+  namespace: postgres
+  labels:
+    app.kubernetes.io/name: postgres-backup
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 26
+    runAsGroup: 26
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: writer
+      image: ghcr.io/cloudnative-pg/postgresql:18.7-202611230809-minimal-trixie@sha256:c8caac9817d2b5e5e66297a3ccf86d9fcbd68f097aa6cc00161d83f9635e88cc
+      command:
+        - /bin/sh
+        - -c
+        - |
+          set -u
+          psql -X -v ON_ERROR_STOP=1 -c 'CREATE TABLE IF NOT EXISTS failover_drill (id bigint PRIMARY KEY, at timestamptz NOT NULL DEFAULT now())' || exit 1
+          : > /work/acked
+          i=0
+          while [ "$i" -lt 3000 ]; do
+            i=$((i + 1))
+            if psql -X -q -v ON_ERROR_STOP=1 -c "INSERT INTO failover_drill (id) VALUES ($i)" 2>/dev/null; then
+              echo "$i" >> /work/acked
+            else
+              echo "insert $i failed" >&2
+              sleep 1
+            fi
+          done
+          echo done >&2
+          sleep 3600
+      env:
+        - name: PGHOST
+          value: postgres-rw
+        - name: PGDATABASE
+          value: app
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-app
+              key: username
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-app
+              key: password
+        - name: PGSSLMODE
+          value: require
+        - name: PGCONNECT_TIMEOUT
+          value: "3"
+      resources:
+        requests:
+          cpu: 20m
+          memory: 32Mi
+        limits:
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      volumeMounts:
+        - name: work
+          mountPath: /work
+        - name: tmp
+          mountPath: /tmp
+  volumes:
+    - name: work
+      emptyDir: {}
+    - name: tmp
+      emptyDir: {}

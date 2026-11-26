@@ -1,0 +1,189 @@
+# Daily logical backup to object storage. The init container dumps and
+# encrypts with the same image as the instances; the upload container applies
+# the capacity guard and the fixed retention. See README.md for the bound.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: postgres
+  labels:
+    app.kubernetes.io/name: postgres-backup
+spec:
+  # Stays suspended until the three Secrets in README.md exist and one manual
+  # run has passed.
+  suspend: true
+  schedule: "17 3 * * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 7200
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      # No retry: a retry could add a second object before the prune.
+      backoffLimit: 0
+      activeDeadlineSeconds: 1800
+      # A failed Job, and its alert, clear after twelve hours. A backup that
+      # keeps failing is then reported by the backup age alert.
+      ttlSecondsAfterFinished: 43200
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: postgres-backup
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 26
+            runAsGroup: 26
+            fsGroup: 26
+            seccompProfile:
+              type: RuntimeDefault
+          initContainers:
+            - name: dump
+              # Keep identical to imageName in cluster.yaml.
+              image: ghcr.io/cloudnative-pg/postgresql:18.7-202611230809-minimal-trixie@sha256:c8caac9817d2b5e5e66297a3ccf86d9fcbd68f097aa6cc00161d83f9635e88cc
+              command: ["/bin/sh", "/scripts/dump.sh"]
+              env:
+                - name: PGHOST
+                  value: postgres-rw
+                - name: PGPORT
+                  value: "5432"
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-backup-role
+                      key: username
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-backup-role
+                      key: password
+                - name: PGSSLMODE
+                  value: verify-full
+                - name: PGSSLROOTCERT
+                  value: /ca/ca.crt
+                - name: PGCONNECT_TIMEOUT
+                  value: "10"
+                - name: PGAPPNAME
+                  value: postgres-backup
+                - name: RECIPIENT_FILE
+                  value: /recipient/recipient.asc
+                - name: GNUPGHOME
+                  value: /work/gnupg
+                - name: WORK_DIR
+                  value: /work
+                - name: MAX_OBJECT_BYTES
+                  value: "20000000"
+                - name: HOME
+                  value: /tmp
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: recipient
+                  mountPath: /recipient
+                  readOnly: true
+                - name: ca
+                  mountPath: /ca
+                  readOnly: true
+                - name: work
+                  mountPath: /work
+                - name: tmp
+                  mountPath: /tmp
+          containers:
+            - name: upload
+              # The same client release that check-capacity.sh in the Velero
+              # component uses against this bucket.
+              image: amazon/aws-cli:2.36.1@sha256:406ca32d31e640a56e8d52921b40528cc64bfa59ec9cb4ee1456db6746cb7292
+              command: ["/bin/sh", "/scripts/upload.sh"]
+              envFrom:
+                # AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_ENDPOINT_URL,
+                # S3_BUCKET and S3_PREFIX.
+                - secretRef:
+                    name: postgres-backup-s3
+              env:
+                - name: AWS_DEFAULT_REGION
+                  value: auto
+                # Send only the checksums an operation requires. Newer clients
+                # otherwise add CRC headers by default.
+                - name: AWS_REQUEST_CHECKSUM_CALCULATION
+                  value: when_required
+                - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+                  value: when_required
+                - name: AWS_EC2_METADATA_DISABLED
+                  value: "true"
+                - name: BACKUP_NAME
+                  value: postgres
+                - name: KEEP
+                  value: "7"
+                - name: MAX_OBJECT_BYTES
+                  value: "20000000"
+                # Decimal bucket ceiling and reserve, shared with Velero.
+                - name: CEILING_BYTES
+                  value: "1000000000"
+                - name: RESERVE_BYTES
+                  value: "100000000"
+                - name: WARN_BYTES
+                  value: "700000000"
+                - name: WORK_DIR
+                  value: /work
+                - name: HOME
+                  value: /tmp
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 96Mi
+                limits:
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: work
+                  mountPath: /work
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: scripts
+              configMap:
+                name: postgres-backup-scripts
+                defaultMode: 0555
+            - name: recipient
+              secret:
+                secretName: postgres-backup-recipient
+                defaultMode: 0444
+            - name: ca
+              secret:
+                secretName: postgres-ca
+                defaultMode: 0444
+                items:
+                  - key: ca.crt
+                    path: ca.crt
+            # Memory-backed so the unencrypted dump never reaches a node disk.
+            # It holds the dumps, the tar and the encrypted copy at once.
+            - name: work
+              emptyDir:
+                medium: Memory
+                sizeLimit: 96Mi
+            - name: tmp
+              emptyDir:
+                sizeLimit: 16Mi

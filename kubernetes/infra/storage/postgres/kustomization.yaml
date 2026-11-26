@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - cluster.yaml
+  - pod-monitor.yaml
+  - network-policy.yaml
+  - backup-cronjob.yaml
+  - prometheus-rule.yaml
+configMapGenerator:
+  - name: postgres-backup-scripts
+    namespace: postgres
+    files:
+      - backup/dump.sh
+      - backup/upload.sh
+    options:
+      disableNameSuffixHash: true

@@ -1,0 +1,33 @@
+# Disposable single-instance target for the restore drill. Not reconciled.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: postgres-restore-drill
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: scratch
+  namespace: postgres-restore-drill
+spec:
+  instances: 1
+  # Same image as kubernetes/infra/storage/postgres/cluster.yaml.
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.7-202611230809-minimal-trixie@sha256:c8caac9817d2b5e5e66297a3ccf86d9fcbd68f097aa6cc00161d83f9635e88cc
+  # A single instance would otherwise block a drain of its node.
+  enablePDB: false
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+  postgresql:
+    parameters:
+      shared_buffers: 32MB
+  storage:
+    storageClass: local-path
+    size: 1Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi

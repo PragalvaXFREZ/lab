@@ -1,0 +1,92 @@
+# Shared PostgreSQL foundation: one primary and one synchronous standby, one
+# instance per node. See README.md for the durability and storage contract.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres
+  namespace: postgres
+  annotations:
+    # Deleting the Cluster deletes its PVCs. Never let Argo CD do that by
+    # pruning or by deleting the Application.
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  instances: 2
+  # Rolling tag 18.7-minimal-trixie pointed at this build when it was pinned.
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.7-202611230809-minimal-trixie@sha256:c8caac9817d2b5e5e66297a3ccf86d9fcbd68f097aa6cc00161d83f9635e88cc
+
+  # Rolling updates restart the standby, then switch over instead of
+  # restarting the primary in place.
+  primaryUpdateStrategy: unsupervised
+  primaryUpdateMethod: switchover
+
+  # Fail over as soon as the primary is unhealthy. Shut a primary down in at
+  # most five minutes during a switchover, and give open sessions 30 seconds
+  # before a fast shutdown.
+  failoverDelay: 0
+  switchoverDelay: 300
+  smartShutdownTimeout: 30
+  stopDelay: 300
+
+  # Keeps the primary PodDisruptionBudget. With two instances the operator
+  # creates no replica budget, so draining the standby's node is never blocked,
+  # and draining the primary's node waits for a switchover.
+  enablePDB: true
+
+  affinity:
+    enablePodAntiAffinity: true
+    podAntiAffinityType: required
+    topologyKey: kubernetes.io/hostname
+
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+
+  postgresql:
+    parameters:
+      shared_buffers: 64MB
+      effective_cache_size: 192MB
+      work_mem: 2MB
+      maintenance_work_mem: 32MB
+      max_connections: "40"
+      # High-availability replication slots retain WAL for an absent standby.
+      # Cap the retention so a long node outage cannot fill the shared disk.
+      max_slot_wal_keep_size: 1GB
+    synchronous:
+      method: any
+      number: 1
+      # Commits wait for the standby while it is healthy. When it is not,
+      # the operator drops it from the quorum and the primary stays writable.
+      dataDurability: preferred
+
+  managed:
+    roles:
+      # Read-only role for the logical backup job.
+      - name: backup
+        ensure: present
+        login: true
+        bypassrls: true
+        inRoles:
+          - pg_read_all_data
+        passwordSecret:
+          name: postgres-backup-role
+
+  storage:
+    storageClass: local-path
+    # local-path does not enforce this size; it documents the expected bound.
+    size: 5Gi
+
+  ephemeralVolumesSizeLimit:
+    shm: 64Mi
+    temporaryData: 256Mi
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 192Mi
+    limits:
+      memory: 384Mi
+
+  # The operator-managed PodMonitor is deprecated; pod-monitor.yaml replaces it.
+  monitoring:
+    enablePodMonitor: false
