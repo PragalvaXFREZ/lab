@@ -7,7 +7,12 @@
 # must not race a git push, startingDeadlineSeconds because an outage that
 # lasts two days must not wedge the CronJob permanently, backoffLimit 1
 # because the next hourly tick is the retry, Never so failed pods keep their
-# logs, activeDeadlineSeconds so a hung push cannot block every later run.
+# logs, activeDeadlineSeconds so a hung push cannot block every later run,
+# ttlSecondsAfterFinished so a finished Job is deleted after a day. The
+# history limit alone keeps a failed Job until two newer runs fail, which
+# holds KubeJobFailed for as long as later runs succeed. With the TTL, one
+# failed run alerts for at most a day and its pod logs stay readable for
+# that day; a run that keeps failing keeps alerting through each new Job.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -22,6 +27,7 @@ spec:
   jobTemplate:
     spec:
       backoffLimit: 1
+      ttlSecondsAfterFinished: 86400
       activeDeadlineSeconds: 600
       template:
         spec:

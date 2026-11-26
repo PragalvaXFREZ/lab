@@ -1,0 +1,91 @@
+# Alertmanager routing, loaded as the global configuration through
+# alertmanagerSpec.alertmanagerConfiguration in values.yaml. The operator
+# applies no namespace matcher to a global AlertmanagerConfig, and the chart's
+# alertmanager.config is not read while this is set.
+#
+# Every route ends in the null receiver, so nothing is delivered yet and the
+# Alertmanager UI shows what a real receiver would get. The delivery route
+# is the last one: only warning and critical alerts reach it.
+#
+# Grouping is tuned for one operator reading a phone: one notification per
+# alert name and namespace, 1m group_wait so a burst after a restart arrives
+# as one message, 10m group_interval so changes to an open group are batched,
+# and a 24h repeat so a known problem is a daily reminder, not a stream.
+#
+# The inhibit rules are the chart's defaults, unchanged.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: alertmanager-routing
+  namespace: monitoring
+spec:
+  route:
+    receiver: "null"
+    groupBy:
+      - alertname
+      - namespace
+    groupWait: 1m
+    groupInterval: 10m
+    repeatInterval: 24h
+    routes:
+      # Watchdog always fires and InfoInhibitor exists only to inhibit info
+      # alerts; neither is a notification.
+      - receiver: "null"
+        matchers:
+          - name: alertname
+            matchType: "=~"
+            value: Watchdog|InfoInhibitor
+      # Hand-made practice namespaces that are not managed in git. Their
+      # failures are expected and say nothing about the platform. default is
+      # left out on purpose: the apiserver targets carry namespace="default".
+      - receiver: "null"
+        matchers:
+          - name: namespace
+            matchType: "=~"
+            value: dev|bootcamp|example-namespace|networking-namespace
+      # Delivery route. Info and none severities stay on the root null
+      # receiver.
+      - receiver: "null"
+        matchers:
+          - name: severity
+            matchType: "=~"
+            value: warning|critical
+  receivers:
+    - name: "null"
+  inhibitRules:
+    - sourceMatch:
+        - name: severity
+          matchType: "="
+          value: critical
+      targetMatch:
+        - name: severity
+          matchType: "=~"
+          value: warning|info
+      equal:
+        - namespace
+        - alertname
+    - sourceMatch:
+        - name: severity
+          matchType: "="
+          value: warning
+      targetMatch:
+        - name: severity
+          matchType: "="
+          value: info
+      equal:
+        - namespace
+        - alertname
+    - sourceMatch:
+        - name: alertname
+          matchType: "="
+          value: InfoInhibitor
+      targetMatch:
+        - name: severity
+          matchType: "="
+          value: info
+      equal:
+        - namespace
+    - targetMatch:
+        - name: alertname
+          matchType: "="
+          value: InfoInhibitor

@@ -1,5 +1,47 @@
 alertmanager:
-  enabled: false
+  enabled: true
+  # GOMEMLIMIT follows the container memory limit, so the Go runtime collects
+  # garbage before the hard limit instead of being killed at it.
+  enableFeatures:
+  - auto-gomemlimit
+  alertmanagerSpec:
+    replicas: 1
+    # Routing and receivers live in resources/alertmanager-routing.yaml.
+    alertmanagerConfiguration:
+      name: alertmanager-routing
+      global:
+        resolveTimeout: 5m
+    # No storage: silences and the notification log live in an emptyDir and
+    # are lost when the pod restarts.
+    resources:
+      limits:
+        memory: 96Mi
+      requests:
+        cpu: 10m
+        memory: 32Mi
+    # The operator leaves the config reloader without resources by default.
+    containers:
+    - name: config-reloader
+      resources:
+        limits:
+          memory: 48Mi
+        requests:
+          cpu: 5m
+          memory: 16Mi
+    initContainers:
+    - name: init-config-reloader
+      resources:
+        limits:
+          memory: 48Mi
+        requests:
+          cpu: 5m
+          memory: 16Mi
+defaultRules:
+  disabled:
+    # Sums every ResourceQuota against node allocatable, so it carries no
+    # namespace and cannot be routed by namespace. Today it only measures a
+    # practice quota that is not in git. Re-enable when git manages quotas.
+    KubeMemoryQuotaOvercommit: true
 grafana:
   replicas: 1
   admin:
