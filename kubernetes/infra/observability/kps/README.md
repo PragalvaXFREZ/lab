@@ -49,6 +49,20 @@ up{namespace="argocd"}
 
 Reverting a file in `resources/` removes the object, because the kps Application prunes.
 
+## Alert rules
+
+`resources/` also holds the PrometheusRules for components whose own Applications have no suitable directory source: `argocd-prometheus-rule.yaml`, `longhorn-prometheus-rule.yaml`, and `velero-prometheus-rule.yaml`. Argo CD's source is the bootstrap kustomization, Longhorn has no directory source, and Velero's only directory source holds its encrypted credentials. kps also owns the CRDs these rules need. Every rule waits long enough to ignore a normal sync, a single pod restart, or one slow scrape, and none fires on a healthy cluster.
+
+- Argo CD: an automatically synced Application not `Synced`, or any Application not `Healthy`, for 30 minutes.
+- Longhorn: a faulted volume for 10 minutes; a degraded volume for 30 minutes; a node or disk not ready for 15 minutes; a node or disk not schedulable, or a disk over 85 percent full, for 30 minutes. Detached volumes report robustness `unknown`, so they match only when Longhorn keeps a detached volume `faulted` because no replica is usable.
+- Velero: a failed, rejected, or partially failed backup in the last hour; the backup storage location unavailable for 30 minutes.
+
+The chart's default `TargetDown` rule already covers every new scrape target: it fires when more than 10 percent of the targets of any job are down for 10 minutes. To list what is firing:
+
+```promql
+ALERTS{alertstate="firing", alertname=~"ArgoCD.*|Longhorn.*|Velero.*"}
+```
+
 ## Devata overview dashboard
 
 `resources/devata-overview-dashboard.yaml` is the source of truth for Grafana's home dashboard. The Grafana sidecar discovers its `grafana_dashboard: "1"` label, uses the `grafana_folder` annotation to place it in the `Devata` folder, and reloads it when the ConfigMap changes. `grafana.ini` points the server-wide home view at the same provisioned JSON file.

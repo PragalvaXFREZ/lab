@@ -28,4 +28,4 @@ The root and every child Application must report `Synced` and `Healthy`. Investi
 
 ## Metrics
 
-Prometheus scrapes the Argo CD metrics Services through a ServiceMonitor owned by kps, in [`../infra/observability/kps/resources/`](../infra/observability/kps/resources/). It is not part of this kustomization because the bootstrap must apply before the ServiceMonitor CRD exists, and the `argocd` Application does not prune.
+Prometheus scrapes the Argo CD metrics Services through a ServiceMonitor owned by kps, in [`../infra/observability/kps/resources/`](../infra/observability/kps/resources/), next to the rule that alerts on Applications that stay out of sync or unhealthy. Neither is part of this kustomization because the bootstrap must apply before the monitoring CRDs exist, and the `argocd` Application does not prune.

@@ -1,0 +1,42 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: velero
+  namespace: monitoring
+spec:
+  groups:
+    - name: velero.backups
+      rules:
+        # Velero initializes these counters at zero for on-demand backups
+        # (schedule=""), so the first failure after a restart is counted.
+        - alert: VeleroBackupFailed
+          expr: >-
+            sum by (schedule) (increase(velero_backup_failure_total[1h]))
+            + sum by (schedule) (increase(velero_backup_validation_failure_total[1h]))
+            > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: A Velero backup failed
+            description: At least one backup failed or was rejected by validation in the last hour.
+        - alert: VeleroBackupPartiallyFailed
+          expr: >-
+            sum by (schedule)
+            (increase(velero_backup_partial_failure_total[1h])) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: A Velero backup partially failed
+            description: At least one backup finished with errors in the last hour.
+        - alert: VeleroBackupStorageLocationUnavailable
+          expr: >-
+            max by (backup_location_name)
+            (velero_backup_location_status_gauge) == 0
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: Velero backup location {{ $labels.backup_location_name }} is unavailable
+            description: Velero has not been able to validate the backup storage location for 30 minutes.

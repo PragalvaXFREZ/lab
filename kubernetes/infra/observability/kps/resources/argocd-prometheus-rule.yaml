@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: argocd
+  namespace: monitoring
+spec:
+  groups:
+    - name: argocd.applications
+      rules:
+        # Manual-sync Applications are left out: they wait OutOfSync between a
+        # merge and the manual sync by design. Their health is still covered.
+        - alert: ArgoCDApplicationOutOfSync
+          expr: >-
+            max by (name, project)
+            (argocd_app_info{autosync_enabled="true", sync_status!="Synced"}) > 0
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: Argo CD Application {{ $labels.name }} is not Synced
+            description: The automatically synced Application {{ $labels.name }} has not reported Synced for 30 minutes.
+        - alert: ArgoCDApplicationUnhealthy
+          expr: >-
+            max by (name, project)
+            (argocd_app_info{health_status!="Healthy"}) > 0
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: Argo CD Application {{ $labels.name }} is not Healthy
+            description: The Application {{ $labels.name }} has not reported Healthy for 30 minutes.
