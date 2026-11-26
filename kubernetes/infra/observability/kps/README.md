@@ -63,6 +63,13 @@ The chart's default `TargetDown` rule already covers every new scrape target: it
 ALERTS{alertstate="firing", alertname=~"ArgoCD.*|Longhorn.*|Velero.*"}
 ```
 
+## Prometheus memory
+
+The Prometheus memory limit covers the process and the page cache it reads its blocks through. With too little room for cache, the rules that look back 3 and 30 days over the API server histograms re-read blocks from disk on every evaluation, run longer than their interval, and `PrometheusMissingRuleEvaluations` fires. The API server exports one histogram series per resource, verb and bucket, so each new CRD adds series; `kubeApiServer.serviceMonitor.metricRelabelings` drops the size and watch histograms that no rule or dashboard reads.
+
+- **Verify.** `prometheus_rule_group_last_duration_seconds` stays below each group's interval, and `sum(increase(prometheus_rule_group_iterations_missed_total[10m]))` is 0. `container_memory_cache{namespace="monitoring", container="prometheus"}` shows the cache the container keeps.
+- **Limits.** A dropped series stays in the head until the next truncation, about two to three hours.
+
 ## Devata overview dashboard
 
 `resources/devata-overview-dashboard.yaml` is the source of truth for Grafana's home dashboard. The Grafana sidecar discovers its `grafana_dashboard: "1"` label, uses the `grafana_folder` annotation to place it in the `Devata` folder, and reloads it when the ConfigMap changes. `grafana.ini` points the server-wide home view at the same provisioned JSON file.
