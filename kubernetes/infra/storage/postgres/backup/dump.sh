@@ -15,6 +15,12 @@ fail() {
 : "${RECIPIENT_FILE:?}" "${WORK_DIR:?}" "${MAX_OBJECT_BYTES:?}"
 [ -s "$RECIPIENT_FILE" ] || fail "recipient public key is missing"
 
+# A database name is passed as a quoted dbname= keyword, so a name that
+# contains "=" is never parsed as a connection string.
+conninfo_db() {
+  printf "dbname='%s'" "$(printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e "s/'/\\\\'/g")"
+}
+
 umask 077
 stage="$WORK_DIR/stage"
 out="$WORK_DIR/backup.tar.gpg"
@@ -33,7 +39,7 @@ index=0
 while IFS= read -r db; do
   index=$((index + 1))
   file=$(printf '%03d.dump' "$index")
-  pg_dump --format=custom --file="$stage/$file" --dbname="$db" < /dev/null
+  pg_dump --format=custom --file="$stage/$file" --dbname="$(conninfo_db "$db")" < /dev/null
   printf '%s\t%s\t%s\n' "$file" "$(sha256sum "$stage/$file" | cut -d' ' -f1)" "$db" >> "$stage/manifest.tsv"
 done < "$WORK_DIR/databases"
 printf 'dump: %d database(s) dumped\n' "$index"

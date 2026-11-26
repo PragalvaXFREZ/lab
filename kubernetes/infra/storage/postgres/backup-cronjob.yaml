@@ -9,9 +9,7 @@ metadata:
   labels:
     app.kubernetes.io/name: postgres-backup
 spec:
-  # Stays suspended until the three Secrets in README.md exist and one manual
-  # run has passed.
-  suspend: true
+  suspend: false
   schedule: "17 3 * * *"
   timeZone: Etc/UTC
   concurrencyPolicy: Forbid
@@ -132,13 +130,12 @@ spec:
                   value: "7"
                 - name: MAX_OBJECT_BYTES
                   value: "20000000"
-                # Decimal bucket ceiling and reserve, shared with Velero.
+                # Decimal bucket ceiling and reserve, shared with Velero. The
+                # bucket-size warning is the postgres-bucket-usage CronJob.
                 - name: CEILING_BYTES
                   value: "1000000000"
                 - name: RESERVE_BYTES
                   value: "100000000"
-                - name: WARN_BYTES
-                  value: "700000000"
                 - name: WORK_DIR
                   value: /work
                 - name: HOME

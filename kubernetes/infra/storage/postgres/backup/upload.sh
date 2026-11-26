@@ -6,14 +6,17 @@
 #   objects under the prefix <= KEEP + 1 at any time
 #   bytes under the prefix   <= (KEEP + 1) * MAX_OBJECT_BYTES
 #
-# because an object above MAX_OBJECT_BYTES is never uploaded, older objects are
-# pruned to KEEP before and after each upload, and a job never retries.
-# The job also fails, without uploading, when the bucket would cross
-# CEILING_BYTES - RESERVE_BYTES, and fails after uploading when the bucket is
-# above WARN_BYTES, so both conditions reach the job-failure alert.
+# because an object above MAX_OBJECT_BYTES is never uploaded, this job's
+# objects are pruned to KEEP before and after each upload, a job never
+# retries, and no manual run overlaps a scheduled one.
+# The job also fails, without uploading, when the whole bucket would cross
+# CEILING_BYTES - RESERVE_BYTES. The bucket-size warning is a separate job.
+#
+# Only keys named <prefix><BACKUP_NAME>-YYYYMMDDTHHMMSSZ.tar.gpg belong to this
+# job. Any other key under the prefix is never counted or deleted.
 #
 # Inputs: AWS_* credentials, S3_ENDPOINT_URL, S3_BUCKET, S3_PREFIX, BACKUP_NAME,
-# KEEP, MAX_OBJECT_BYTES, CEILING_BYTES, RESERVE_BYTES, WARN_BYTES, WORK_DIR.
+# KEEP, MAX_OBJECT_BYTES, CEILING_BYTES, RESERVE_BYTES, WORK_DIR.
 set -eu
 # Object keys are split on newlines below; never expand them as globs.
 set -f
@@ -31,7 +34,7 @@ is_count() {
 
 : "${AWS_ACCESS_KEY_ID:?}" "${AWS_SECRET_ACCESS_KEY:?}"
 : "${S3_ENDPOINT_URL:?}" "${S3_BUCKET:?}" "${S3_PREFIX:?}" "${BACKUP_NAME:?}" "${WORK_DIR:?}"
-for value in "${KEEP:?}" "${MAX_OBJECT_BYTES:?}" "${CEILING_BYTES:?}" "${RESERVE_BYTES:?}" "${WARN_BYTES:?}"; do
+for value in "${KEEP:?}" "${MAX_OBJECT_BYTES:?}" "${CEILING_BYTES:?}" "${RESERVE_BYTES:?}"; do
   is_count "$value" || fail "numeric settings must be non-negative integers"
 done
 [ "$KEEP" -ge 1 ] || fail "KEEP must be at least 1"
@@ -55,7 +58,8 @@ bucket_bytes() {
 own_keys() {
   listing=$(s3 list-objects-v2 --bucket "$S3_BUCKET" --prefix "$prefix" --query 'Contents[].Key || `[]`') || return 1
   printf '%s' "$listing" \
-    | jq -r --arg p "${prefix}${BACKUP_NAME}-" '.[] | select(startswith($p) and endswith(".tar.gpg"))' \
+    | jq -r --arg p "${prefix}${BACKUP_NAME}-" \
+        '.[] | select(startswith($p) and (.[($p | length):] | test("^[0-9]{8}T[0-9]{6}Z\\.tar\\.gpg$")))' \
     | LC_ALL=C sort
 }
 
@@ -115,7 +119,4 @@ printf 'upload: stored %s (%s bytes, sha256 %s)\n' "${key#"$prefix"}" "$size" "$
 
 prune
 
-after=$(bucket_bytes) || fail "cannot measure bucket usage"
-printf 'upload: bucket_bytes_after=%s warn_bytes=%s\n' "$after" "$WARN_BYTES"
-[ "$after" -le "$WARN_BYTES" ] || fail "backup stored, but bucket usage is above the warning threshold"
 printf 'upload: done\n'

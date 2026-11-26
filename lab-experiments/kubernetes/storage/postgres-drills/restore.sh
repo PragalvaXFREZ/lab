@@ -37,6 +37,12 @@ sha256() {
   if command -v sha256sum > /dev/null; then sha256sum "$1"; else shasum -a 256 "$1"; fi | cut -d' ' -f1
 }
 
+# A database name is passed as a quoted dbname= keyword, so a name that
+# contains "=" is never parsed as a connection string.
+conninfo_db() {
+  printf "dbname='%s'" "$(printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e "s/'/\\\\'/g")"
+}
+
 s3() {
   docker run --rm -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION=auto \
     -e AWS_REQUEST_CHECKSUM_CALCULATION=when_required -e AWS_RESPONSE_CHECKSUM_VALIDATION=when_required \
@@ -45,8 +51,12 @@ s3() {
 
 name=${2:-}
 if [ -z "$name" ]; then
+  # Only the backup job's own names: postgres-YYYYMMDDTHHMMSSZ.tar.gpg.
   keys=$(s3 list-objects-v2 --bucket "$S3_BUCKET" --prefix "${prefix}postgres-" --query 'Contents[].Key || `[]`')
-  key=$(printf '%s' "$keys" | jq -r '.[] | select(endswith(".tar.gpg"))' | LC_ALL=C sort | tail -n 1)
+  key=$(printf '%s' "$keys" \
+    | jq -r --arg p "${prefix}postgres-" \
+        '.[] | select(startswith($p) and (.[($p | length):] | test("^[0-9]{8}T[0-9]{6}Z\\.tar\\.gpg$")))' \
+    | LC_ALL=C sort | tail -n 1)
   [ -n "$key" ] || fail "no backup found under the prefix"
 else
   key="${prefix}${name}"
@@ -63,15 +73,22 @@ tar -C "$work/dumps" -xf "$work/backup.tar"
 [ -s "$work/dumps/manifest.tsv" ] || fail "backup has no manifest"
 cp "$work/dumps/manifest.tsv" "$out/manifest.tsv"
 
+# pg_restore reads each dump from a file in the pod, not from stdin, which
+# is not seekable.
+remote=/controller/restore-drill
+kubectl -n "$namespace" exec "$pod" -c postgres -- mkdir -p "$remote" < /dev/null
+
 tab=$(printf '\t')
 while IFS="$tab" read -r file digest db; do
   [ "$(sha256 "$work/dumps/$file")" = "$digest" ] || fail "dump of $db does not match the manifest"
   if [ "$db" != app ]; then
     kubectl -n "$namespace" exec "$pod" -c postgres -- createdb "$db" < /dev/null
   fi
+  kubectl -n "$namespace" cp -c postgres "$work/dumps/$file" "$pod:$remote/$file" < /dev/null
+  kubectl -n "$namespace" exec "$pod" -c postgres -- \
+    pg_restore --dbname="$(conninfo_db "$db")" --no-owner --no-privileges --exit-on-error "$remote/$file" < /dev/null
+  kubectl -n "$namespace" exec "$pod" -c postgres -- rm -f "$remote/$file" < /dev/null
   kubectl -n "$namespace" exec -i "$pod" -c postgres -- \
-    pg_restore --dbname="$db" --no-owner --no-privileges --exit-on-error < "$work/dumps/$file"
-  kubectl -n "$namespace" exec -i "$pod" -c postgres -- \
-    psql -X -A -t -v ON_ERROR_STOP=1 -d "$db" < "$here/checksum.sql" > "$out/after-$file.txt"
+    psql -X -A -t -v ON_ERROR_STOP=1 -d "$(conninfo_db "$db")" < "$here/checksum.sql" > "$out/after-$file.txt"
   printf 'restore: %s restored, checksums in %s\n' "$db" "$out/after-$file.txt"
 done < "$work/dumps/manifest.tsv"

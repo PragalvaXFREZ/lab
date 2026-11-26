@@ -1,6 +1,7 @@
 # Silent at rest: every rule is false while both instances run, the standby
-# streams, and the daily backup succeeds. A failed backup Job is reported by
-# the kube-prometheus-stack KubeJobFailed rule, so it is not repeated here.
+# streams, and the daily backup succeeds. A failed backup or bucket-usage Job
+# is reported by the kube-prometheus-stack KubeJobFailed rule, so it is not
+# repeated here.
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
@@ -51,9 +52,11 @@ spec:
               unless on(namespace, cronjob)
               kube_cronjob_status_last_successful_time{namespace="postgres", cronjob="postgres-backup"}
             )
+            or
+            absent(kube_cronjob_info{namespace="postgres", cronjob="postgres-backup"})
           for: 15m
           labels:
             severity: warning
           annotations:
             summary: No successful PostgreSQL backup in 26 hours
-            description: The daily logical backup has not succeeded for more than 26 hours, or has never succeeded since the CronJob was created. A suspended CronJob also fires this alert.
+            description: The daily logical backup has not succeeded for more than 26 hours, has never succeeded since the CronJob was created, or the CronJob no longer exists. A suspended CronJob also fires this alert.
