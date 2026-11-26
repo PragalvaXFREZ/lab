@@ -12,9 +12,19 @@ The OptiPlex path is a dedicated XFS user volume. The Nitro path is inside Talos
 
 The Longhorn manager runs only on nodes with the same label (`longhornManager.nodeSelector`). A node without the label has no manager and no CSI plugin, so a pod that mounts a `longhorn` claim cannot start there.
 
+## Metrics
+
+The chart's ServiceMonitor scrapes every Longhorn manager through the `longhorn-backend` Service, port `manager` (9500), as job `longhorn-backend`. Each manager reports the nodes, disks, and volumes it owns. Per-replica, per-engine, workqueue, and Kubernetes client series are dropped at scrape time because their count grows with the number of volumes. The ServiceMonitor skips the Argo CD dry run so a fresh cluster can install Longhorn before the kps CRDs exist.
+
+```promql
+up{job="longhorn-backend"}
+```
+
+Both manager targets must return `1`. Reverting the `metrics` block in git removes the ServiceMonitor without touching Longhorn itself.
+
 ## Files
 
-- `values.yaml` pins the V1 engine, two-replica policy, non-default StorageClass, and storage path.
+- `values.yaml` pins the V1 engine, two-replica policy, non-default StorageClass, storage path, and ServiceMonitor.
 - `../../../clusters/devata/longhorn.yaml` wires the chart into the devata app of apps and grants the namespace the privileged Pod Security level Longhorn requires.
 - `../../../../talos/schematics/` and `../../../../talos/machineconfigs/` describe the operating-system prerequisites applied outside Argo CD.
 

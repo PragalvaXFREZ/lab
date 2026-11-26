@@ -35,10 +35,24 @@ Alertmanager receives every alert that Prometheus fires, groups it, applies inhi
 - **Rollback.** Reverting the commit that added the `discord` receiver returns delivery to `null`; the Secret can stay. Reverting the commit that enabled Alertmanager removes it; Argo CD prunes the Alertmanager and its routing object, and Prometheus keeps evaluating rules.
 - **Limits.** Silences and the notification log are kept in an emptyDir and are lost when the pod restarts; after a restart, every alert that is still firing counts as new. There is one replica. There is no dead man's switch outside the cluster: nothing receives `Watchdog`, so if the control plane node stops, Prometheus stops with it and nothing alerts. `AlertmanagerFailedToSendAlerts` routes to the same Discord receiver, so a broken webhook shows only in the metrics above and in the Alertmanager log.
 
+## Scrape targets
+
+Prometheus selects every ServiceMonitor, PodMonitor, and PrometheusRule in the cluster without a label. Probes and ScrapeConfigs need the `release: kps` label.
+
+`resources/argocd-service-monitor.yaml` scrapes the Argo CD metrics Services in the `argocd` namespace: `argocd-metrics`, `argocd-server-metrics`, `argocd-repo-server`, `argocd-applicationset-controller`, and `argocd-notifications-controller-metrics`. The job label is the Service name. It lives here rather than beside the Argo CD installation because the bootstrap is applied before the ServiceMonitor CRD exists and the `argocd` Application does not prune. It drops the pre-registered gRPC server series and per-request histograms, which are most of what Argo CD exports.
+
+Longhorn, Velero, and the blackbox exporter declare their own scrape objects beside their charts. To confirm every Argo CD target is up:
+
+```promql
+up{namespace="argocd"}
+```
+
+Reverting a file in `resources/` removes the object, because the kps Application prunes.
+
 ## Devata overview dashboard
 
 `resources/devata-overview-dashboard.yaml` is the source of truth for Grafana's home dashboard. The Grafana sidecar discovers its `grafana_dashboard: "1"` label, uses the `grafana_folder` annotation to place it in the `Devata` folder, and reloads it when the ConfigMap changes. `grafana.ini` points the server-wide home view at the same provisioned JSON file.
 
 The dashboard starts with aggregate signals that Prometheus already scrapes: node readiness, target health, firing alerts, workload state, node CPU and memory, Hubble traffic and drops, and CoreDNS response errors. It links to the chart-provided Kubernetes, node-exporter, Cilium, and Prometheus dashboards for component drill-down.
 
-The provisioned dashboard is not editable in the Grafana UI. Change its JSON in git, validate the ConfigMap, and let Argo CD reconcile it. Argo CD, Longhorn, and Velero do not yet expose metrics to this Prometheus instance, so the overview deliberately omits direct panels for them until their metrics endpoints are scraped.
+The provisioned dashboard is not editable in the Grafana UI. Change its JSON in git, validate the ConfigMap, and let Argo CD reconcile it. Prometheus scrapes Argo CD, Longhorn, and Velero, but the overview has no direct panels for them yet.

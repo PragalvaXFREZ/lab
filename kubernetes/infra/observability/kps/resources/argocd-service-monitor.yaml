@@ -1,0 +1,33 @@
+# Argo CD metrics. This lives with kps, not in kubernetes/bootstrap/argocd,
+# because the bootstrap is applied by hand before the ServiceMonitor CRD exists
+# and the argocd Application does not prune.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd
+  namespace: monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+      - argocd
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: argocd
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values:
+          - argocd-metrics
+          - argocd-server-metrics
+          - argocd-repo-server
+          - argocd-applicationset-controller
+          - argocd-notifications-controller-metrics
+  endpoints:
+    - port: metrics
+      metricRelabelings:
+        # argocd-server pre-registers every gRPC method with every status code.
+        # The remaining drops are per-request histograms and per-resource
+        # request counters that no dashboard or rule here reads.
+        - sourceLabels: [__name__]
+          regex: grpc_server_.+|argocd_app_k8s_request_total|argocd_kubectl_.+_bucket|workqueue_.+_bucket|controller_runtime_reconcile_time_seconds_bucket|rest_client_.+_bucket
+          action: drop

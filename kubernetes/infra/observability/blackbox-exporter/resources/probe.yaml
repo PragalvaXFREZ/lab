@@ -1,0 +1,24 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: probook
+  namespace: monitoring
+  labels:
+    release: kps
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  jobName: probook
+  interval: 60s
+  scrapeTimeout: 10s
+  prober:
+    url: blackbox-exporter.monitoring.svc:9115
+  # To probe TCP instead, swap the module line and the target line for the
+  # commented ones below them.
+  module: icmp
+  # module: tcp_connect
+  targets:
+    staticConfig:
+      static:
+        - 192.168.1.8
+        # - 192.168.1.8:22

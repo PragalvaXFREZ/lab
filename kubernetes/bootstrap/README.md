@@ -25,3 +25,7 @@ kubectl get applications -n argocd
 ```
 
 The root and every child Application must report `Synced` and `Healthy`. Investigate any diff before changing automation or applying a resource by hand.
+
+## Metrics
+
+Prometheus scrapes the Argo CD metrics Services through a ServiceMonitor owned by kps, in [`../infra/observability/kps/resources/`](../infra/observability/kps/resources/). It is not part of this kustomization because the bootstrap must apply before the ServiceMonitor CRD exists, and the `argocd` Application does not prune.

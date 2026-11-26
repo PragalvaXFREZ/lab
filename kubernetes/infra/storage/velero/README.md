@@ -10,9 +10,19 @@ The single Velero controller runs on the OptiPlex storage worker, whose network 
 
 Argo CD renders and applies the chart CRDs directly with Server-Side Apply. The chart's separate CRD upgrade hook is disabled because it duplicates that ownership path and depends on a short-lived kubectl helper image.
 
+## Metrics
+
+The chart's ServiceMonitor scrapes the Velero server through the `velero` Service, port `http-monitoring` (8085), as job `velero`. Autodetection is off, so the ServiceMonitor renders the same way in CI and in Argo CD, and it skips the Argo CD dry run so a fresh cluster can install Velero before the kps CRDs exist. The node agent is not scraped: its series grow with each pod volume backup, and a failed volume backup already marks its parent backup as partially failed on the server.
+
+```promql
+velero_backup_location_status_gauge
+```
+
+Every backup storage location must return `1`. Reverting the `metrics` block in git removes the ServiceMonitor and restores the previous pod annotations.
+
 ## Files
 
-- `values.yaml` configures the R2 backup location, AWS-compatible plugin, Kopia node agent, and resource limits.
+- `values.yaml` configures the R2 backup location, AWS-compatible plugin, Kopia node agent, metrics, and resource limits.
 - `secrets/cloud-credentials.yaml` contains the encrypted R2 access and secret keys.
 - `secrets/repository-credentials.yaml` contains the encrypted Kopia repository password required to restore file-system backups.
 - `check-capacity.sh` measures R2 and rejects a planned backup that cannot retain a 100 MB safety reserve below the decimal 1 GB ceiling.

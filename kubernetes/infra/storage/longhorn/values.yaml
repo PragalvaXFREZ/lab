@@ -23,6 +23,20 @@ defaultSettings:
 longhornUI:
   replicas: 1
 
+# The ServiceMonitor CRD comes from kps. Skipping the dry run keeps a fresh
+# cluster able to install Longhorn before kps exists.
+metrics:
+  serviceMonitor:
+    enabled: true
+    annotations:
+      argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    metricRelabelings:
+      # Per-replica, per-engine, and controller internals scale with volume
+      # count and are not used by any dashboard or rule here.
+      - sourceLabels: [__name__]
+        regex: longhorn_(replica|engine)_.+|longhorn_workqueue_.+|longhorn_rest_client_.+
+        action: drop
+
 # Run the manager only on nodes that hold a Longhorn disk. A node without the
 # iscsi-tools Talos extension cannot pass the manager environment check.
 longhornManager:
