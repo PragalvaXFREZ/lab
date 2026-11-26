@@ -1,0 +1,35 @@
+fullnameOverride: blackbox-exporter
+
+replicas: 1
+
+# ICMP without a capability: the exporter opens an unprivileged ICMP socket
+# first, which the kernel allows when the process group is inside this range.
+# The container keeps the chart default security context (UID and GID 1000,
+# non-root, read-only root filesystem, every capability dropped).
+podSecurityContext:
+  sysctls:
+    - name: net.ipv4.ping_group_range
+      value: "1000 1000"
+
+config:
+  modules:
+    http_2xx: null
+    icmp:
+      prober: icmp
+      timeout: 5s
+      icmp:
+        preferred_ip_protocol: ip4
+        ip_protocol_fallback: false
+    tcp_connect:
+      prober: tcp
+      timeout: 5s
+      tcp:
+        preferred_ip_protocol: ip4
+        ip_protocol_fallback: false
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 24Mi
+  limits:
+    memory: 64Mi

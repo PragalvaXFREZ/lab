@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: blackbox-exporter
+  namespace: argocd
+  labels:
+    devata.pragalva.me/tier: platform
+spec:
+  project: default
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: prometheus-blackbox-exporter
+      targetRevision: 11.21.3
+      helm:
+        valueFiles:
+          - $values/kubernetes/infra/observability/blackbox-exporter/values.yaml
+    - repoURL: https://github.com/PragalvaXFREZ/lab.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/PragalvaXFREZ/lab.git
+      targetRevision: main
+      path: kubernetes/infra/observability/blackbox-exporter/resources
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true

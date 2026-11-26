@@ -55,3 +55,14 @@ nodeAgent:
       memory: 512Mi
 
 schedules: {}
+
+# Autodetect is off so the rendered output does not depend on the API list
+# passed to helm. The ServiceMonitor CRD comes from kps; skipping the dry run
+# keeps a fresh cluster able to install Velero before kps exists.
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    autodetect: false
+    annotations:
+      argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
