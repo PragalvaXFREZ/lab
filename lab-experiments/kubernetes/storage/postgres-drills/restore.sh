@@ -7,9 +7,10 @@
 #
 # OBJECT_NAME is a name under the backup prefix, for example
 # postgres-20261128T031700Z.tar.gpg. The newest backup is used when omitted.
-# Requires docker, gpg, kubectl, jq, and AWS_ACCESS_KEY_ID,
+# Requires gpg, kubectl, jq, docker or a local aws CLI, and AWS_ACCESS_KEY_ID,
 # AWS_SECRET_ACCESS_KEY, S3_ENDPOINT_URL, S3_BUCKET and S3_PREFIX in the
-# environment, loaded without printing them.
+# environment, loaded without printing them. Set KUBE_CONTEXT to name the
+# kubectl context when the default context is not the cluster.
 set -eu
 
 fail() {
@@ -20,9 +21,10 @@ fail() {
 out=${1:-}
 [ -n "$out" ] || fail "usage: restore.sh OUTPUT_DIR [OBJECT_NAME]"
 : "${AWS_ACCESS_KEY_ID:?}" "${AWS_SECRET_ACCESS_KEY:?}" "${S3_ENDPOINT_URL:?}" "${S3_BUCKET:?}" "${S3_PREFIX:?}"
-for tool in docker gpg kubectl jq; do
+for tool in gpg kubectl jq; do
   command -v "$tool" > /dev/null || fail "$tool is required"
 done
+command -v docker > /dev/null || command -v aws > /dev/null || fail "docker or aws is required"
 
 here=$(cd -- "$(dirname -- "$0")" && pwd)
 image=amazon/aws-cli:2.36.1@sha256:406ca32d31e640a56e8d52921b40528cc64bfa59ec9cb4ee1456db6746cb7292
@@ -43,10 +45,26 @@ conninfo_db() {
   printf "dbname='%s'" "$(printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e "s/'/\\\\'/g")"
 }
 
-s3() {
-  docker run --rm -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION=auto \
-    -e AWS_REQUEST_CHECKSUM_CALCULATION=when_required -e AWS_RESPONSE_CHECKSUM_VALIDATION=when_required \
-    -v "$work:/work" "$image" --endpoint-url "$S3_ENDPOINT_URL" --output json s3api "$@"
+# The pinned client image when docker is present, a local aws CLI otherwise.
+# s3_work is the download directory as the client sees it.
+if command -v docker > /dev/null; then
+  s3_work=/work
+  s3() {
+    docker run --rm -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION=auto \
+      -e AWS_REQUEST_CHECKSUM_CALCULATION=when_required -e AWS_RESPONSE_CHECKSUM_VALIDATION=when_required \
+      -v "$work:/work" "$image" --endpoint-url "$S3_ENDPOINT_URL" --output json s3api "$@"
+  }
+else
+  s3_work=$work
+  s3() {
+    AWS_DEFAULT_REGION=auto AWS_REQUEST_CHECKSUM_CALCULATION=when_required \
+      AWS_RESPONSE_CHECKSUM_VALIDATION=when_required \
+      aws --endpoint-url "$S3_ENDPOINT_URL" --output json s3api "$@"
+  }
+fi
+
+kubectl() {
+  command kubectl ${KUBE_CONTEXT:+--context "$KUBE_CONTEXT"} "$@"
 }
 
 name=${2:-}
@@ -63,7 +81,7 @@ else
 fi
 printf 'restore: object %s\n' "${key#"$prefix"}"
 
-meta=$(s3 get-object --bucket "$S3_BUCKET" --key "$key" /work/backup.tar.gpg)
+meta=$(s3 get-object --bucket "$S3_BUCKET" --key "$key" "$s3_work/backup.tar.gpg")
 expected=$(printf '%s' "$meta" | jq -er '.Metadata.sha256')
 [ "$(sha256 "$work/backup.tar.gpg")" = "$expected" ] || fail "downloaded object does not match its sha256 metadata"
 

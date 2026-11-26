@@ -13,3 +13,4 @@ The format is lightweight, after [Michael Nygard's ADRs](https://cognitect.com/b
 - [0005 - The ProBook leaves the cluster](./0005-probook-leaves-the-cluster.md)
 - [0006 - Archive Uptime Kuma](./0006-archive-uptime-kuma.md)
 - [0007 - Host infra-portal from its own repository](./0007-host-infra-portal.md)
+- [0008 - Alerting to Discord and a shared PostgreSQL foundation](./0008-alerting-and-a-postgres-foundation.md)
