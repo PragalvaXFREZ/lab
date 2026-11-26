@@ -12,6 +12,10 @@ data:
           "paths": ["/var/mnt/longhorn/local-path"]
         },
         {
+          "node": "talos-lqv-w4u",
+          "paths": ["/var/mnt/longhorn/local-path"]
+        },
+        {
           "node": "DEFAULT_PATH_FOR_NON_LISTED_NODES",
           "paths": ["/opt/local-path-provisioner"]
         }
