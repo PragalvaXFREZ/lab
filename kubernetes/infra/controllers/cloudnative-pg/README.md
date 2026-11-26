@@ -25,7 +25,7 @@ The deployment must be Available, and Prometheus must report the `cnpg-system` P
 
 ## Rollback
 
-Remove every `Cluster` first. The CRDs are rendered by the chart, so deleting the Application with pruning deletes them, and Kubernetes then deletes every `Cluster` and the objects it owns. Never prune this Application while a `Cluster` exists.
+Remove every `Cluster` first, then revert the child Application. The chart marks its CRDs with `helm.sh/resource-policy: keep`, and Argo CD does not delete them when the Application is deleted, so existing `Cluster` resources survive a removal of the operator. The real danger is a values change to `crds.create: false` while the Application stays: the CRDs then leave the rendered output and an automated prune deletes them, and Kubernetes deletes every `Cluster` and the PVCs it owns. Never disable `crds.create` while a `Cluster` exists.
 
 ## Upgrades
 
