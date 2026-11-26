@@ -1,6 +1,6 @@
 # PostgreSQL drills
 
-Two proofs for the shared cluster in `kubernetes/infra/storage/postgres/`: a primary loss that keeps every acknowledged commit, and a restore from R2 whose table checksums match the source. Nothing here is reconciled by Argo CD. Results belong in a dated report beside this README.
+Two proofs for the shared cluster in `kubernetes/infra/storage/postgres/`: a primary loss that keeps every acknowledged commit, and a restore from R2 whose table checksums match the source. Nothing here is reconciled by Argo CD. Results belong in a dated report beside this README; the first one is [`2026-11-27-report.md`](./2026-11-27-report.md).
 
 ## Failover: no acknowledged commit is lost
 
@@ -49,7 +49,7 @@ Repeat with the primary on the other node. Draining a node instead of deleting t
 2. With no consumer writing, and away from the scheduled 03:17 UTC run so the retention bound holds, take a backup right after the checksum: `kubectl -n postgres create job --from=cronjob/postgres-backup postgres-backup-drill`, then confirm `upload: done` in its logs.
 3. Apply `scratch-cluster.yaml` and wait for `scratch` to report a healthy state.
 4. Load the backup credentials into the environment without printing them, with the OpenPGP private key in the local keyring, and run `./restore.sh results`. It downloads the newest object, checks its SHA-256 against the stored metadata, decrypts it locally, checks each dump against the manifest, restores into `scratch`, and writes `results/after-<file>.txt`.
-5. Match each database through `results/manifest.tsv`, then `diff before-app.txt results/after-001.txt`. The output must be empty, including the last `overall|` line.
+5. Match each database through `results/manifest.tsv`, then `diff before-app.txt results/after-001.dump.txt`. The output must be empty, including the last `overall|` line.
 6. Delete the `postgres-restore-drill` namespace. The scratch volume is removed with it.
 
 The restore uses `--no-owner --no-privileges`, so the checksum compares data, not ownership. Roles are declared in the `Cluster` spec, not in the backup.

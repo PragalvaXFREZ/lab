@@ -2,7 +2,7 @@
 
 Velero writes Kubernetes resource backups and selected file-system volume backups to a private Cloudflare R2 bucket. The R2 credentials are committed only as a strict-scope SealedSecret.
 
-The bucket has a 1 GB operating ceiling. No recurring `Schedule` resource is declared because R2 does not provide a per-bucket capacity limit. Backups are created on demand only after their bounded input and current bucket usage have been checked. File-system backup is opt-in per pod volume, which prevents an unbounded Prometheus TSDB from entering a backup accidentally. A Cloudflare budget notification may provide an additional warning, but it is not a storage quota and is not part of the enforcement model.
+The bucket has a 1 GB operating ceiling. It is shared with the daily PostgreSQL logical backup, which writes under its own prefix with a fixed bound of 160,000,000 bytes and its own whole-bucket guard; see [`../postgres/README.md`](../postgres/README.md). No recurring `Schedule` resource is declared because R2 does not provide a per-bucket capacity limit. Backups are created on demand only after their bounded input and current bucket usage have been checked. File-system backup is opt-in per pod volume, which prevents an unbounded Prometheus TSDB from entering a backup accidentally. A Cloudflare budget notification may provide an additional warning, but it is not a storage quota and is not part of the enforcement model.
 
 The node agent uses Kopia to read selected mounted volumes. Native volume snapshots are disabled because R2 is the durable target and Longhorn snapshots remain on the same cluster failure domain.
 
