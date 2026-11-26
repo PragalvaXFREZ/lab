@@ -3,9 +3,15 @@
 # applies no namespace matcher to a global AlertmanagerConfig, and the chart's
 # alertmanager.config is not read while this is set.
 #
-# Every route ends in the null receiver, so nothing is delivered yet and the
-# Alertmanager UI shows what a real receiver would get. The delivery route
-# is the last one: only warning and critical alerts reach it.
+# Only warning and critical alerts reach Discord, through the last route.
+# Everything else ends in the null receiver.
+#
+# The Discord webhook URL is read by the operator from the Secret
+# alertmanager-discord-webhook, key url, and written into the generated
+# configuration. The operator in chart 86.2.0 does not accept
+# webhook_url_file for Discord. If the Secret is missing or its URL is not
+# valid, the operator stops reconciling the Alertmanager: a running pod keeps
+# its previous configuration, and no pod is created if none exists yet.
 #
 # Grouping is tuned for one operator reading a phone: one notification per
 # alert name and namespace, 1m group_wait so a burst after a restart arrives
@@ -45,13 +51,31 @@ spec:
             value: dev|bootcamp|example-namespace|networking-namespace
       # Delivery route. Info and none severities stay on the root null
       # receiver.
-      - receiver: "null"
+      - receiver: discord
         matchers:
           - name: severity
             matchType: "=~"
             value: warning|critical
   receivers:
     - name: "null"
+    # Title: status, alert name and severity. Body: namespace, the common
+    # summary, then one line per alert, marked when resolved. Discord limits
+    # the title to 256 and the body to 4096 characters; Alertmanager
+    # truncates longer text.
+    - name: discord
+      discordConfigs:
+        - apiURL:
+            name: alertmanager-discord-webhook
+            key: url
+          sendResolved: true
+          title: >-
+            [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}]
+            {{ .CommonLabels.alertname }}{{ with .CommonLabels.severity }} ({{ . }}){{ end }}
+          message: |-
+            {{ with .CommonLabels.namespace }}Namespace: {{ . }}
+            {{ end }}{{ with .CommonAnnotations.summary }}{{ . }}
+            {{ end }}{{ range .Alerts }}
+            - {{ if eq .Status "resolved" }}[resolved] {{ end }}{{ with .Annotations.description }}{{ . }}{{ else }}{{ .Annotations.summary }}{{ end }}{{ end }}
   inhibitRules:
     - sourceMatch:
         - name: severity
